@@ -14,30 +14,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package rubensandreoli.drivescanner.view;
+package rubensandreoli.drivescanner.controller.events;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import rubensandreoli.drivescanner.model.ScanInfo;
 
-public class FoldersScan {
+public class Scan {
 
-    private Set<File> oldFoldersSet = new HashSet<File>();
-    private Map<File, Long> newFoldersMap = new TreeMap<File, Long>();
+    private Set<File> oldFoldersSet;
+    private Map<File, Long> newFoldersMap;
 
-    public FoldersScan(File drive, List<ScanInfo> scansInfoList) {
-        //Get all 'drive' scanned folders and add to Set:
-        for (ScanInfo piScanInfo : scansInfoList) {
-            if (piScanInfo.getDrive().equals(drive)) {
-                for (File oldFolder : piScanInfo.getScanFoldersInfo().keySet()) {
-                    oldFoldersSet.add(oldFolder);
-                }
-            }
-        }
+    public Scan(File drive, Set<File> oldFoldersSet) {
+        this.newFoldersMap = new TreeMap<File, Long>();
+        this.oldFoldersSet = oldFoldersSet;
         this.folderCrawler(drive);
     }
 
@@ -51,7 +42,7 @@ public class FoldersScan {
                     folderSize += childFile.length();
                 }
             }
-            newFoldersMap.put(folder, folderSize);
+            this.newFoldersMap.put(folder, folderSize);
         }
         //Crawl if file is directory and its not empty:
         for (File childFile : folderFiles) {
@@ -65,7 +56,7 @@ public class FoldersScan {
     }
 
     public Map<File, Long> getNewFoldersMap() {
-        return newFoldersMap;
+        return this.newFoldersMap;
     }
 
 }

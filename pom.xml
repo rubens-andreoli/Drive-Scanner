@@ -12,4 +12,11 @@
         <exec.mainClass>rubensandreoli.drivescanner.Launcher</exec.mainClass>
     </properties>
     <name>Drive Scanner</name>
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
+    </build>
 </project>

@@ -14,21 +14,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package rubensandreoli.drivescanner;
+package rubensandreoli.drivescanner.model.support;
 
-import rubensandreoli.drivescanner.view.MainFrame;
+import rubensandreoli.drivescanner.model.ScanInfo;
 
-import javax.swing.SwingUtilities;
+import java.io.File;
+import java.util.ArrayList;
 
-public class Launcher {
+@SuppressWarnings("serial")
+public class PArrayList extends ArrayList<ScanInfo> {
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new MainFrame();
-            }
-        });
+    public ScanInfo getScan(File drive, String scanName) {
+        ScanInfo scanInfo = new ScanInfo(drive, scanName);
+        if (this.contains(scanInfo)) {
+            return this.get(this.indexOf(scanInfo));
+        }
+        return null;
     }
 
 }

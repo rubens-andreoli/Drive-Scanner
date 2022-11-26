@@ -14,21 +14,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package rubensandreoli.drivescanner;
+package rubensandreoli.drivescanner.view.support;
 
-import rubensandreoli.drivescanner.view.MainFrame;
+import javax.swing.ImageIcon;
 
-import javax.swing.SwingUtilities;
+public class IconLoader {
 
-public class Launcher {
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new MainFrame();
-            }
-        });
+    public ImageIcon createIcon(String filename) {
+        try{
+            return new ImageIcon(getClass().getClassLoader().getResource("images/" + filename));
+        }catch(NullPointerException ex){
+            return new ImageIcon();
+        }
     }
 
 }

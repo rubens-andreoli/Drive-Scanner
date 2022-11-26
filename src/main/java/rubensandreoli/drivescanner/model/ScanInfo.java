@@ -23,17 +23,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class ScanInfo implements Serializable {
+public class ScanInfo implements Serializable, Comparable<ScanInfo> {
 
-    private static final long serialVersionUID = 6770983295472043526L;
+    private static final long serialVersionUID = 6770983295472043527L;
 
     private File drive;
     private String scanName;
     private Date scanDate;
-    private long scanSize;
+    private Map<File, Long> scanFolders;
 
-    private Map<File, Long> scanFoldersInfo;
-    private Set<File> foldersParents;
+    private long scanSize;
+    private Set<File> parentFolders;
 
     private Date updatedScanDate;
     private long updatedScanSize;
@@ -41,37 +41,42 @@ public class ScanInfo implements Serializable {
     private Set<File> updatedFoldersLower;
     private Set<File> deletedFolders;
 
-    public ScanInfo(File drive, String scanName, Map<File, Long> foldersMap) {
+    public ScanInfo(File drive, String scanName, Map<File, Long> foldersInfo) {
         this.drive = drive;
         this.scanName = scanName;
         this.scanDate = new Date();
-        this.scanFoldersInfo = foldersMap;
+        this.scanFolders = foldersInfo;
         this.setScanSize();
         this.setParentFolders();
     }
 
+    public ScanInfo(File drive, String scanName) {
+        this.drive = drive;
+        this.scanName = scanName;
+    }
+
     private void setScanSize() {
         long scanSize = 0;
-        for (long folderSize : scanFoldersInfo.values()) {
+        for (long folderSize : scanFolders.values()) {
             scanSize += folderSize;
         }
         this.scanSize = scanSize;
     }
 
     private void setParentFolders() {
-        foldersParents = new HashSet<File>();
-        for (File folderName : scanFoldersInfo.keySet()) {
+        parentFolders = new HashSet<File>();
+        for (File folderName : scanFolders.keySet()) {
             if (folderName.toString().replace("\\", "").length() == folderName.toString().length() - 1) {
-                foldersParents.add(folderName);
+                parentFolders.add(folderName);
             } else {
                 File parentFolder = folderName;
-                while (scanFoldersInfo.containsKey(parentFolder) && !parentFolder.equals(this.drive)) {
-                    if (!scanFoldersInfo.containsKey(parentFolder.getParentFile())) {
+                while (scanFolders.containsKey(parentFolder) && !parentFolder.equals(this.drive)) {
+                    if (!scanFolders.containsKey(parentFolder.getParentFile())) {
                         break;
                     }
                     parentFolder = parentFolder.getParentFile();
                 }
-                foldersParents.add(parentFolder);
+                parentFolders.add(parentFolder);
             }
         }
     }
@@ -96,16 +101,12 @@ public class ScanInfo implements Serializable {
         return scanSize;
     }
 
-    public Map<File, Long> getScanFoldersInfo() {
-        return scanFoldersInfo;
+    public Map<File, Long> getScanFolders() {
+        return scanFolders;
     }
 
-    public Set<File> getFoldersParents() {
-        return foldersParents;
-    }
-
-    public void setFoldersParents(Set<File> foldersParents) {
-        this.foldersParents = foldersParents;
+    public Set<File> getParentFolders() {
+        return parentFolders;
     }
 
     public Date getUpdatedScanDate() {
@@ -146,6 +147,56 @@ public class ScanInfo implements Serializable {
 
     public void setUpdatedFoldersLower(Set<File> updatedFoldersLower) {
         this.updatedFoldersLower = updatedFoldersLower;
+    }
+
+    public File toFile() {
+        String driveLetter = drive.toString().substring(0, drive.toString().length() - 2).toLowerCase();
+        String scanFilename = scanName.replaceAll("[<>:\"\\\\/|?*]", "").toLowerCase();
+        String historyFilename = "\\history\\" + driveLetter + "-" + scanFilename + ".scan";
+        return new File(System.getProperty("user.dir") + historyFilename);
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((drive == null) ? 0 : drive.hashCode());
+        result = prime * result + ((scanName == null) ? 0 : scanName.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        ScanInfo other = (ScanInfo) obj;
+        if (drive == null) {
+            if (other.drive != null) {
+                return false;
+            }
+        } else if (!drive.equals(other.drive)) {
+            return false;
+        }
+        if (scanName == null) {
+            if (other.scanName != null) {
+                return false;
+            }
+        } else if (!scanName.equals(other.scanName)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int compareTo(ScanInfo scanInfo) {
+        return this.scanDate.compareTo(scanInfo.scanDate);
     }
 
 }

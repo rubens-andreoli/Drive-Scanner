@@ -14,21 +14,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package rubensandreoli.drivescanner;
+package rubensandreoli.drivescanner.view.events;
 
-import rubensandreoli.drivescanner.view.MainFrame;
+import java.util.EventObject;
 
-import javax.swing.SwingUtilities;
+@SuppressWarnings("serial")
+public class ViewEvent extends EventObject {
 
-public class Launcher {
+    private EventsID eventId;
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new MainFrame();
-            }
-        });
+    public ViewEvent(Object source) {
+        super(source);
+    }
+
+    public ViewEvent(Object source, EventsID eventID) {
+        super(source);
+        this.eventId = eventID;
+    }
+
+    public EventsID getEventId() {
+        return eventId;
     }
 
 }

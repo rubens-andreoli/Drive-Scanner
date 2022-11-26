@@ -14,21 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package rubensandreoli.drivescanner;
+package rubensandreoli.drivescanner.view.events;
 
-import rubensandreoli.drivescanner.view.MainFrame;
-
-import javax.swing.SwingUtilities;
-
-public class Launcher {
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new MainFrame();
-            }
-        });
-    }
-
+public enum EventsID {
+    SCAN, RENAME, DELETE, UPDATE, SELECT_DRIVE, SELECT_SCAN, EXIT, SCAN_PANEL, TABLE_FILTER, ABOUT;
 }

@@ -14,21 +14,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package rubensandreoli.drivescanner;
+package rubensandreoli.drivescanner.controller.support;
 
-import rubensandreoli.drivescanner.view.MainFrame;
+import java.text.DecimalFormat;
 
-import javax.swing.SwingUtilities;
+public class SizeFormat {
 
-public class Launcher {
+    public String longToString(long size) {
+        String formatedSize = "0";
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new MainFrame();
-            }
-        });
+        if (size != 0) {
+            final String[] units = new String[]{"B", "KB", "MB", "GB", "TB"};
+            int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
+            formatedSize = new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups))
+                    + " " + units[digitGroups];
+        }
+
+        return formatedSize;
     }
 
 }

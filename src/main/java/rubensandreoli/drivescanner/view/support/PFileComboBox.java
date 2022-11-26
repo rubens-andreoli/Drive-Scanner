@@ -14,21 +14,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package rubensandreoli.drivescanner;
+package rubensandreoli.drivescanner.view.support;
 
-import rubensandreoli.drivescanner.view.MainFrame;
+import rubensandreoli.drivescanner.view.events.EventComponent;
+import rubensandreoli.drivescanner.view.events.EventsID;
 
-import javax.swing.SwingUtilities;
+import java.io.File;
 
-public class Launcher {
+import javax.swing.JComboBox;
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new MainFrame();
-            }
-        });
+@SuppressWarnings("serial")
+public class PFileComboBox extends JComboBox<File> implements EventComponent {
+
+    private EventsID eventID;
+
+    public PFileComboBox(EventsID eventID, int x, int y, int width, String toolsTip) {
+        this.eventID = eventID;
+        this.setBounds(x, y, width, 20);
+        this.setToolTipText(toolsTip);
+    }
+
+    @Override
+    public EventsID getEventID() {
+        return eventID;
     }
 
 }
