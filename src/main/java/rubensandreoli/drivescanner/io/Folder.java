@@ -35,6 +35,7 @@ public class Folder implements Serializable, Comparable<Folder> {
     private State state;
     private boolean calculated = false;
     private Map<String, Long> files = new HashMap<>(); //ignored files' order for performance reasons.
+    //TODO: save on a different file (transient and save after), load only when needed (update, display). record time for comparison.
 //    private boolean isRoot;
 
     public Folder(File file) {

@@ -18,14 +18,18 @@ package rubensandreoli.drivescanner.gui;
 
 import java.awt.Cursor;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import rubensandreoli.drivescanner.gui.support.ActionEvent;
 import rubensandreoli.drivescanner.gui.support.ActionEventListener;
 import rubensandreoli.drivescanner.gui.support.IconLoader;
-import rubensandreoli.drivescanner.io.History;
+import rubensandreoli.drivescanner.io.Repository;
 import rubensandreoli.drivescanner.io.Scan;
 import rubensandreoli.drivescanner.io.Scanner;
 
@@ -41,9 +45,10 @@ import rubensandreoli.drivescanner.io.Scanner;
  */
 public class MainFrame extends javax.swing.JFrame implements ActionEventListener {
 
-    private final History.Data data;
+    private Repository.Data data;
     private Scan currentScan;
-    private SwingWorker <Boolean, String> worker;
+    private SwingWorker <Scan, String> scanWorker;
+    private SwingWorker <Void, String> updateWorker;
     private boolean locked = false;
 
     @SuppressWarnings("LeakingThisInConstructor")
@@ -51,8 +56,20 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         initComponents();
         setLocationRelativeTo(null);
         
-        data = History.getInstance().getData();
+        Repository repository = Repository.getInstance();
+        //TODO: load data in new thread.
+        repository.load(new Repository.LoadListener(){
+            @Override
+            public void onLoaded(Repository.Data data) {
+                MainFrame.this.data = data;
+            }
 
+            @Override
+            public void onLoadException(Exception e, String fileName) {
+                showLoadException(e, fileName); //TODO: option to delete when failed to load.
+            }
+        });
+        
         //SET LISTENERS
         mniScan.addActionListener(e -> eventOccurred(ActionEvent.SCAN));
         mniStop.addActionListener(e -> eventOccurred(ActionEvent.STOP));
@@ -74,8 +91,8 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
     private String createName(String msg, String title, String msgError){
         String name = JOptionPane.showInputDialog(MainFrame.this, msg, title, JOptionPane.QUESTION_MESSAGE);
         if (name == null || name.equals("")) return null;
-        final File drive = toolsPanel.getSelectedDrive();
-        while(History.getInstance().existsScan(drive, name)){
+        File drive = toolsPanel.getSelectedDrive();
+        while(Repository.getInstance().existsScan(drive, name)){
             name = JOptionPane.showInputDialog(MainFrame.this, msgError, title, JOptionPane.WARNING_MESSAGE);
             if (name == null || name.equals("")) return null;
         }
@@ -133,19 +150,24 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                         "Choose another scan name, this one has already been used:"
                 );
                 if(scanNewName == null) break;
+                //TODO: rename scan in new thread.
+                Repository.getInstance().renameScan(currentScan, scanNewName, new Repository.SaveListener() {
+                    @Override
+                    public void onSaved(Scan scan) {
+                        listPanel.replaceScan(currentScan, scan);
+                        currentScan = scan;
+                    }
 
-                final Scan renamedScan = History.getInstance().renameScan(currentScan, scanNewName);
-                if(renamedScan != null){
-                    listPanel.replaceScan(currentScan, renamedScan);
-                    currentScan = renamedScan;
-                }else{
-                    JOptionPane.showMessageDialog(MainFrame.this,
+                    @Override
+                    public void onSaveException(Exception e, String scanName) {
+                        JOptionPane.showMessageDialog(MainFrame.this,
                             "Scan file not found or could not be renamed. "
                             + "Reopen the program to clear it from the Scans List. "
                             + "Or verify folder access permissions.",
                             "Error: File Not Found",
                             JOptionPane.ERROR_MESSAGE);
-                }
+                    }
+                });
                 break;
             case DELETE:
                 int confirm = JOptionPane.showConfirmDialog(MainFrame.this,
@@ -154,7 +176,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                         JOptionPane.OK_CANCEL_OPTION);
 
                 if (confirm == JOptionPane.OK_OPTION) {
-                    if (History.getInstance().deleteScan(currentScan)) {
+                    if (Repository.getInstance().deleteScan(currentScan)) {
                         listPanel.removeScan(currentScan);
                         scanDeselected();
                     } else {
@@ -169,9 +191,12 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
             case UPDATE:
                 update();
                 break;
-            case STOP:
-                if(worker != null){ //shouldn't happen, just a precaution
-                    worker.cancel(false);
+            case STOP: //TODO: better solution then always stopping both.
+                if(scanWorker != null){ //shouldn't happen, just a precaution
+                    scanWorker.cancel(false);
+                }
+                if(updateWorker != null){
+                    updateWorker.cancel(false);
                 }
                 break;
             case EXIT:
@@ -192,18 +217,19 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
     }
  
     private void scan(){
-        final String scanName = createName(
+        String scanName = createName(
                 "Enter a name for your scan:", 
                 "Name Scan", 
                 "Choose another scan name, this one has already been used:"
         );
         if(scanName == null) return;
-        worker = new SwingWorker<>() {
+        
+        scanWorker = new SwingWorker<>() {
             @Override
-            protected Boolean doInBackground() throws Exception {
-                final File drive = toolsPanel.getSelectedDrive();
+            protected Scan doInBackground() throws Exception {
+                File drive = toolsPanel.getSelectedDrive();
                 
-                final Scan newScan = new Scanner(new Scanner.Handler(){
+                Scan newScan = new Scanner(new Scanner.Handler(){
                     @Override
                     public void setStatus(String status) {
                         publish(status);
@@ -214,13 +240,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                         return isCancelled();
                     }
                 }).scan(scanName, drive, data.getDriveFolders(drive));
-                if(newScan == null) return null;
-                if(!newScan.isEmpty()){
-                    currentScan = newScan;
-                    History.getInstance().saveScan(currentScan, false);
-                    return true;
-                }
-                return false;
+                return newScan;
             }
             
             @Override
@@ -237,15 +257,29 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                 statusPanel.clearStatus();
                 setLocked(false);
                 
-                Boolean result;
+                Scan newScan;
                 try { 
-                    result = get();
+                    newScan = get();
                 } catch (Exception ex) {
-                    result = null;
+                    newScan = null;
                 }
-                if(result == null) return; //exeption or cancelled
-                if(result){
-                    listPanel.addScan(currentScan);
+                
+                if(newScan == null) return; //exception or cancelled;
+                if(!newScan.isEmpty()){
+                    //TODO: save scan in new thread. Or the same as scan but return scan and only affect this frame on done.
+                    Repository.getInstance().addScan(newScan, new Repository.SaveListener(){
+                        @Override
+                        public void onSaved(Scan scan) {
+                            currentScan = scan;
+                            listPanel.addScan(currentScan);
+                            System.out.println(Thread.currentThread().getName());
+                        }
+
+                        @Override
+                        public void onSaveException(Exception e, String scanName) {
+                            showSaveException(e, scanName);
+                        }
+                    });
                 }else{
                     JOptionPane.showMessageDialog(MainFrame.this,
                             "No new folders were found, this scan will not be saved.",
@@ -256,13 +290,13 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         };
         setLocked(true);
         statusPanel.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        worker.execute();
+        scanWorker.execute();
     }
     
     private void update(){
-        worker = new SwingWorker<>() {
+        updateWorker = new SwingWorker<>() {
             @Override
-            protected Boolean doInBackground() throws Exception {
+            protected Void doInBackground() throws Exception {
                 new Scanner(new Scanner.Handler(){
                     @Override
                     public void setStatus(String status) {
@@ -274,7 +308,15 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                         return isCancelled();
                     }
                 }).update(currentScan);
-                History.getInstance().saveScan(currentScan, true);
+                Repository.getInstance().updateScan(currentScan, new Repository.SaveListener(){
+                    @Override
+                    public void onSaved(Scan scan) {}
+
+                    @Override
+                    public void onSaveException(Exception e, String scanName) {
+                        showSaveException(e, scanName);
+                    }
+                });
                 return null;
             }
 
@@ -296,7 +338,47 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         };
         setLocked(true);
         statusPanel.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        worker.execute();
+        scanWorker.execute();
+    }
+    
+        
+    private void showSaveException(Exception e, String scanName){
+        try{
+            throw e;
+        } catch (FileNotFoundException ex) {
+            JOptionPane.showMessageDialog(MainFrame.this, "History folder not found. Reopening the program should fix it. "
+                    + "If problem persists, try creating manually a folder named 'history' in the same folder as the program.", 
+                    "Error: File Not Found", 
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(MainFrame.this, "Scan '" + scanName + "' information could not be saved. "
+                    + "Verify folder access permissions.", "Error: File Access Denied", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(MainFrame.this, "What now?! " + ex.getMessage(), "Error: Unexpected", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void showLoadException(Exception e, String fileName){
+        try{
+            throw e;
+        } catch (FileNotFoundException ex) {
+            JOptionPane.showMessageDialog(MainFrame.this, 
+                    "Scan file '" + fileName + "' not found. It may have been deleted while the program was loading.", 
+                    "Error: File Not Found", 
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(MainFrame.this, 
+                    "Scan file '" + fileName + "' could not be opened. Verify 'History' folder access permissions.", 
+                    "Error: File Access Denied", 
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (ClassNotFoundException ex) {
+            JOptionPane.showMessageDialog(MainFrame.this, 
+                    "Scan file '" + fileName + "' is an outdated scan file. Manually deleting the 'history' folder or the scan should fix the problem.", 
+                    "Error: Invalid Data", 
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(MainFrame.this, "What now?! " + ex.getMessage(), "Error: Unexpected", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     @SuppressWarnings("unchecked")

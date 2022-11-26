@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import javax.swing.JOptionPane;
 
-public class History {
+public class Repository { //not synchronized.
 
     //<editor-fold defaultstate="collapsed" desc="DATA">
     public class Data {
@@ -73,69 +73,66 @@ public class History {
     }
     //</editor-fold>
     
+    //<editor-fold defaultstate="collapsed" desc="LISTENERS">
+    public static interface LoadListener{
+        void onLoaded(Data data);
+        void onLoadException(Exception e, String fileName);
+    }
+
+    public static interface SaveListener{
+        void onSaved(Scan scan);
+        void onSaveException(Exception e, String scanName);
+    }
+    //</editor-fold>
+    
     private static final String FOLDER_NAME = "history";
     private static final String FILE_EXTENSION = ".scan";
     
-    private volatile static History instance;
+    private static final Repository INSTANCE = new Repository();
     private final File folder;
     private Data data;
 
-    private History() {
+    private Repository() {
         folder = new File(System.getProperty("user.dir"), FOLDER_NAME);
         if (!folder.exists()) {
             folder.mkdir();
         }
     }
 
-    private void load() {
+    public void load(LoadListener listener) {
         data = new Data();
-        final File[] scanFiles = folder.listFiles();
+        File[] scanFiles = folder.listFiles();
         for (File scanFile : scanFiles) {
             if (scanFile.isFile() && scanFile.getName().endsWith(FILE_EXTENSION)) {
                 try (var ois = new ObjectInputStream(new FileInputStream(scanFile))) {
-                    final Scan scan = (Scan) ois.readObject();
-                    data.addScan(scan);
-                } catch (FileNotFoundException e) { //TODO: better way to handle exceptions.
-                    JOptionPane.showMessageDialog(null,
-                            "Scan file '" + scanFile.getName() + "' not found. "
-                            + "Reopening the program should fix it.",
-                            "Error: File Not Found",
-                            JOptionPane.ERROR_MESSAGE);
-                } catch (IOException e) {
-                    JOptionPane.showMessageDialog(null,
-                            "Scan file '" + scanFile.getName() + "' could not be opened. "
-                            + "Verify folder access permissions.",
-                            "Error: File Access Denied",
-                            JOptionPane.ERROR_MESSAGE);
-                } catch (ClassNotFoundException e) {
-                    JOptionPane.showMessageDialog(null,
-                            "Scan file '" + scanFile.getName() + "' is an outdated scan file. "
-                            + "Manually deleting the 'history' folder should fix the problem.",
-                            "Error: Invalid Data",
-                            JOptionPane.ERROR_MESSAGE);
+                    data.addScan((Scan) ois.readObject());
+                } catch (FileNotFoundException e) {
+                    listener.onLoadException(e, scanFile.getName());
+                } catch (IOException | ClassNotFoundException e) {
+                    listener.onLoadException(e, scanFile.getName());
                 }
             }
         }
+        listener.onLoaded(data);
     }
 
-    public boolean saveScan(Scan scan, boolean updated) {
+    public void addScan(Scan scan, SaveListener listener){
+        if(saveScan(scan, listener)) data.addScan(scan); //add only if saved.
+    }
+    
+    public void updateScan(Scan scan, SaveListener listener){
+        saveScan(scan, listener); //TODO: what if updating fails? reload old scan?
+    }
+    
+    private boolean saveScan(Scan scan, SaveListener listener) {
         try (var oos = new ObjectOutputStream(new FileOutputStream(createScanFile(scan.getFilename())))) {
             oos.writeObject(scan);
-            if(!updated) data.addScan(scan);
+            listener.onSaved(scan);
             return true;
-        } catch (FileNotFoundException e) { //TODO: better way to handle exceptions.
-            JOptionPane.showMessageDialog(null,
-                    "History folder not found. "
-                    + "Reopening the program should fix it. "
-                    + "If problem persists, try create manually a folder named 'history' in the root folder of the program.",
-                    "Error: File Not Found",
-                    JOptionPane.ERROR_MESSAGE);
+        } catch (FileNotFoundException e) {
+            listener.onSaveException(e, scan.getName());
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(null,
-                    "Scan '" + scan.getName() + "' information could not be saved. "
-                    + "Verify folder access permissions.",
-                    "Error: File Access Denied",
-                    JOptionPane.ERROR_MESSAGE);
+            listener.onSaveException(e, scan.getName());
         }
         return false;
     }
@@ -145,23 +142,22 @@ public class History {
     }
     
     public boolean existsScan(File drive, String name){
-        final File scanFile = createScanFile(Scan.createFilename(drive, name));
-        return scanFile.isFile();
+        return createScanFile(Scan.createFilename(drive, name)).isFile();
     }
     
-    public Scan renameScan(Scan scan, String newName){
-        final Scan newScan = new Scan(newName, scan);
-        final File newScanFile = createScanFile(newScan.getFilename());
+    public Scan renameScan(Scan scan, String newName, SaveListener saveListener){
+        Scan newScan = new Scan(newName, scan);
+        File newScanFile = createScanFile(newScan.getFilename());
         
-        if(!newScanFile.isFile() && saveScan(newScan, false)){
-            deleteScan(scan);
+        if(!newScanFile.isFile() && saveScan(newScan, saveListener)){
+            deleteScan(scan); //delete old only if saved.
             return newScan;
         }
         return null;
     }
     
     public boolean deleteScan(Scan scan){
-        final File scanFile = createScanFile(scan.getFilename());
+        File scanFile = createScanFile(scan.getFilename());
         if(scanFile.isFile() && scanFile.delete()){
             data.deleteScan(scan);
             return true;
@@ -173,17 +169,8 @@ public class History {
         return data;
     }
 
-    @SuppressWarnings("DoubleCheckedLocking")
-    public static History getInstance() {
-        if (instance == null) {
-            synchronized (History.class) {
-                if (instance == null) {
-                    instance = new History();
-                    instance.load();
-                }
-            }
-        }
-        return instance;
+    public static Repository getInstance() {
+        return INSTANCE;
     }
 
 }

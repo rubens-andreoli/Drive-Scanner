@@ -45,7 +45,8 @@ public class Scanner {
 
     //22957; 22352; 30700; 23713; 24975
     //17023; 17519; 19046/ 17797; 18120
-    private void folderCrawler(Folder folder, Set<Folder> newFolders, Set<Folder> oldFolders) { //TODO: deal with security exceptions; test altenatives for performance.
+    private void folderCrawler(Folder folder, Set<Folder> newFolders, Set<Folder> oldFolders) { //TODO: deal with security exceptions.
+        //TODO: try to improve performance.
         File[] folderFiles = folder.getFile().listFiles();
         //Check folder size and add to Map if folder is not registered in previous scans:
         if (oldFolders == null || !oldFolders.contains(folder)) {
