@@ -203,7 +203,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
             protected Boolean doInBackground() throws Exception {
                 final File drive = toolsPanel.getSelectedDrive();
                 
-                final Scan newScan = new Scanner(new Scanner.Listener(){
+                final Scan newScan = new Scanner(new Scanner.Handler(){
                     @Override
                     public void setStatus(String status) {
                         publish(status);
@@ -263,7 +263,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         worker = new SwingWorker<>() {
             @Override
             protected Boolean doInBackground() throws Exception {
-                new Scanner(new Scanner.Listener(){
+                new Scanner(new Scanner.Handler(){
                     @Override
                     public void setStatus(String status) {
                         publish(status);

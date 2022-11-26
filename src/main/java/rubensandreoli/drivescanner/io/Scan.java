@@ -79,9 +79,9 @@ public class Scan implements Serializable, Comparable<Scan> {
 //    }
     
     static String createFilename(File drive, String name){
-        final String rootPath = drive.getPath(); 
-        final String rootLetter = rootPath.substring(0, rootPath.length()-2).toLowerCase();
-        final String normalizedName = name.replaceAll("[<>:\"\\\\/|?*]", "").toLowerCase(); 
+        String rootPath = drive.getPath(); 
+        String rootLetter = rootPath.substring(0, rootPath.length()-2).toLowerCase();
+        String normalizedName = name.replaceAll("[<>:\"\\\\/|?*]", "").toLowerCase(); 
         return rootLetter+"-"+normalizedName;
     }
 
@@ -144,7 +144,7 @@ public class Scan implements Serializable, Comparable<Scan> {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        final Scan other = (Scan) obj;
+        Scan other = (Scan) obj;
         return drive.equals(other.drive) && name.equals(other.name);
     }
 

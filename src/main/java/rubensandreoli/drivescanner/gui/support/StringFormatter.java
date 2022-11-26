@@ -24,21 +24,21 @@ import java.util.Date;
 
 public class StringFormatter {
 
+    private static final String[] UNITS = new String[]{"B", "KB", "MB", "GB", "TB"};
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#,##0.#");
+    
     public static String formatSize(long size) {
         String formatedSize = "0";
-
         if (size != 0) {
-            final String[] units = new String[]{"B", "KB", "MB", "GB", "TB"};
             int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
-            formatedSize = new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups))+ " " + units[digitGroups];
+            formatedSize = DECIMAL_FORMAT.format(size / Math.pow(1024, digitGroups))+ " " + UNITS[digitGroups];
         }
-
         return formatedSize;
     }
     
     public static String formatDate(Date date){
-        DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-        return dateFormat.format(date);
+        return DATE_FORMAT.format(date);
     }
     
     public static String formatNumber(int value){

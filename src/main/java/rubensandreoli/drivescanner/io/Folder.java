@@ -18,11 +18,13 @@ package rubensandreoli.drivescanner.io;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class Folder implements Serializable, Comparable<Folder> {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
     public static enum State implements Serializable{
         UNCHANGED, DELETED, INCREASED, DECREASED
@@ -31,33 +33,46 @@ public class Folder implements Serializable, Comparable<Folder> {
     private final File file;
     private long size;
     private State state;
+    private boolean calculated = false;
+    private Map<String, Long> files = new HashMap<>(); //ignored files' order for performance reasons.
 //    private boolean isRoot;
 
     public Folder(File file) {
-        this.file = Objects.requireNonNull(file);
+        this.file = file;
     }
-
-    void setSize(long size) {
-        if (size < 0) {
-            this.size = 0;
-            state = State.DELETED;
-            return;
+    
+    void addFile(String name, long size){
+        Long oldSize = files.put(name, size);
+        if(oldSize == null || size != oldSize){
+            calculated = false;
         }
-
-        if (state == null) {
-            this.size = size;
+    }
+    
+    void calculateSize(){
+        long tempSize = 0L;
+        for (long size : files.values()) {
+            tempSize += size;
+        }
+        if(state == null){ //just created.
             state = State.UNCHANGED;
-            return;
+            this.size = tempSize;
+        }else{ //updating.
+            if (tempSize == this.size) {
+                state = State.UNCHANGED;
+            }else{
+                if (tempSize > this.size) state = State.INCREASED;
+                else state = State.DECREASED;
+                this.size = tempSize;
+            }
         }
-
-        if (size == this.size) {
-            state = State.UNCHANGED;
-            return;
-        }
-
-        if (size > this.size) state = State.INCREASED;
-        else state = State.DECREASED;
-        this.size = size;
+        calculated = true;
+    }
+    
+    void setDeleted(){ //if folder is created again, calculateSize() will remove deleted state.
+        state = State.DELETED;
+        files.clear();
+        size = 0;
+        calculated = true;
     }
 
     public File getFile() {
@@ -65,6 +80,7 @@ public class Folder implements Serializable, Comparable<Folder> {
     }
 
     public long getSize() {
+        if(!calculated) calculateSize();
         return size;
     }
 
@@ -90,8 +106,7 @@ public class Folder implements Serializable, Comparable<Folder> {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        final Folder other = (Folder) obj;
-        return Objects.equals(this.file, other.file);
+        return Objects.equals(this.file, ((Folder) obj).file);
     }
     
     @Override

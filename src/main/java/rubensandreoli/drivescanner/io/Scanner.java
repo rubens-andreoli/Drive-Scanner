@@ -18,54 +18,52 @@ package rubensandreoli.drivescanner.io;
 
 import java.io.File;
 import java.util.Date;
-import java.util.Objects;
+import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.TreeSet;
 
 public class Scanner {
 
     //<editor-fold defaultstate="collapsed" desc="LISTENER">
-    public static interface Listener{
+    public static interface Handler{
         void setStatus(String status);
         boolean isInterrupted();
     }
     //</editor-fold>
     
-    private final Listener listener;
+    private final Handler handler;
 
-    public Scanner(Listener listener) {
-        this.listener = Objects.requireNonNull(listener);
+    public Scanner(Handler handler) {
+       this.handler = handler;
     }
  
     public Scan scan(String name, File drive, Set<Folder> oldFolders) {
-        final Set<Folder> newFolders = new TreeSet<>();
+        Set<Folder> newFolders = new LinkedHashSet<>();
         this.folderCrawler(new Folder(drive), newFolders, oldFolders);
-        if(listener.isInterrupted()) return null;
+        if(handler.isInterrupted()) return null;
         return new Scan(name, drive, newFolders);
     }
 
     //22957; 22352; 30700; 23713; 24975
     //17023; 17519; 19046/ 17797; 18120
     private void folderCrawler(Folder folder, Set<Folder> newFolders, Set<Folder> oldFolders) { //TODO: deal with security exceptions; test altenatives for performance.
-        final File[] folderFiles = folder.getFile().listFiles();
+        File[] folderFiles = folder.getFile().listFiles();
         //Check folder size and add to Map if folder is not registered in previous scans:
         if (oldFolders == null || !oldFolders.contains(folder)) {
-            long folderSize = 0;
             for (File childFile : folderFiles) {
-                if(listener.isInterrupted()) return;
+                if(handler.isInterrupted()) return;
                 if (childFile.isFile()) {
-                    folderSize += childFile.length();
+                    folder.addFile(childFile.getName(), childFile.length());
                 }
             }
-            folder.setSize(folderSize);
+            folder.calculateSize();
             newFolders.add(folder);
-            listener.setStatus(folder.toString());
+            handler.setStatus(folder.toString());
         }
         //Crawl if file is directory and its not empty:
         for (File childFile : folderFiles) {
-            if(listener.isInterrupted()) return;
+            if(handler.isInterrupted()) return;
             if (childFile.isDirectory()) {
-                final File[] grandchildFiles = childFile.listFiles();
+                File[] grandchildFiles = childFile.listFiles();
                 if (grandchildFiles != null) {
                     this.folderCrawler(new Folder(childFile), newFolders, oldFolders);
                 }
@@ -74,25 +72,24 @@ public class Scanner {
     }
 
     public void update(Scan scan) {  //TODO: deal with security exceptions.
-        final Set<Folder> folders = scan.getFolders();
+        Set<Folder> folders = scan.getFolders();
         for (Folder folder : folders) {
-            if(listener.isInterrupted()) return;
-            listener.setStatus(folder.toString());
-            final File folderFile = folder.getFile();
+            if(handler.isInterrupted()) return;
+            handler.setStatus(folder.toString());
+            File folderFile = folder.getFile();
             if (!folderFile.canRead()) {
-                folder.setSize(-1);
+                folder.setDeleted();
             } else {
-                final File[] folderFiles = folderFile.listFiles();
-                long updatedFolderSize = 0;
+                File[] folderFiles = folderFile.listFiles();
                 if (folderFiles != null) {
-                    for (File folderFileToSize : folderFiles) {
-                        if(listener.isInterrupted()) return;
-                        if (folderFileToSize.isFile()) {
-                            updatedFolderSize += folderFileToSize.length();
+                    for (File childFile : folderFiles) {
+                        if(handler.isInterrupted()) return;
+                        if (childFile.isFile()) {
+                            folder.addFile(childFile.getName(), childFile.length());
                         }
                     }
                 }
-                folder.setSize(updatedFolderSize);
+                folder.calculateSize();
             }
         }
         scan.setUpdated(new Date());
