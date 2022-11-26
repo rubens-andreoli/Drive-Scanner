@@ -19,6 +19,7 @@ package rubensandreoli.drivescanner.model;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -40,12 +41,39 @@ public class ScanInfo implements Serializable {
     private Set<File> updatedFoldersLower;
     private Set<File> deletedFolders;
 
-    public ScanInfo(File drive, String scanName, long scanSize, Map<File, Long> foldersMap) {
+    public ScanInfo(File drive, String scanName, Map<File, Long> foldersMap) {
         this.drive = drive;
         this.scanName = scanName;
-        this.scanSize = scanSize;
         this.scanDate = new Date();
         this.scanFoldersInfo = foldersMap;
+        this.setScanSize();
+        this.setParentFolders();
+    }
+
+    private void setScanSize() {
+        long scanSize = 0;
+        for (long folderSize : scanFoldersInfo.values()) {
+            scanSize += folderSize;
+        }
+        this.scanSize = scanSize;
+    }
+
+    private void setParentFolders() {
+        foldersParents = new HashSet<File>();
+        for (File folderName : scanFoldersInfo.keySet()) {
+            if (folderName.toString().replace("\\", "").length() == folderName.toString().length() - 1) {
+                foldersParents.add(folderName);
+            } else {
+                File parentFolder = folderName;
+                while (scanFoldersInfo.containsKey(parentFolder) && !parentFolder.equals(this.drive)) {
+                    if (!scanFoldersInfo.containsKey(parentFolder.getParentFile())) {
+                        break;
+                    }
+                    parentFolder = parentFolder.getParentFile();
+                }
+                foldersParents.add(parentFolder);
+            }
+        }
     }
 
     public File getDrive() {

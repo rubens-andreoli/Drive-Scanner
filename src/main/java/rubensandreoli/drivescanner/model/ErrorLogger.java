@@ -31,7 +31,7 @@ import javax.swing.JOptionPane;
 public class ErrorLogger {
 
     public ErrorLogger(Exception eToWrite) {
-        File file = new File(System.getProperty("user.dir") + "error_log.txt");
+        File file = new File(System.getProperty("user.dir") + "\\error_log.txt");
         if (!file.exists() || file.isDirectory()) {
             try {
                 file.createNewFile();
@@ -45,7 +45,7 @@ public class ErrorLogger {
         eToWrite.printStackTrace(printWriter);
         stringWritter.toString();
 
-        try ( PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(System.getProperty("user.dir") + "error_log.txt", true)))) {
+        try ( PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(System.getProperty("user.dir") + "\\error_log.txt", true)))) {
             DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             Date date = new Date();
             out.println("------------------------------ " + dateFormat.format(date) + " ------------------------------");

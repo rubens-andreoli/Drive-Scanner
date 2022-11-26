@@ -226,14 +226,12 @@ public class MainFrame extends JFrame {
                 String scanName = JOptionPane.showInputDialog("Enter a name for your scan:");
                 scanName = testScanName(scanName);
                 if (scanName != null) {
-
+                    //FIX: cursor not changing if mouse is out of main frame when scan name is inputed.
                     setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                     btnScan.setEnabled(false);
-                    FoldersScan PiFoldersRead = new FoldersScan(
-                            (File) boxDrives.getSelectedItem(), piScansInfoIn.getScansInfoList());
+                    FoldersScan PiFoldersRead = new FoldersScan((File) boxDrives.getSelectedItem(), piScansInfoIn.getScansInfoList());
                     setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
                     btnScan.setEnabled(true);
-
                     if (PiFoldersRead.getNewFoldersMap().isEmpty() || PiFoldersRead.getNewFoldersMap() == null) {
                         JOptionPane.showMessageDialog(null, "No new folders were found, this scan will not be saved.");
                     } else {

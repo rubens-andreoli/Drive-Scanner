@@ -46,9 +46,9 @@ public class FoldersScan {
         //Check folder size and add to Map if folder is not registered in previous scans:
         if (oldFoldersSet == null || !oldFoldersSet.contains(folder)) {
             long folderSize = 0;
-            for (File folderFileToSize : folderFiles) {
-                if (folderFileToSize.isFile()) {
-                    folderSize += folderFileToSize.length();
+            for (File childFile : folderFiles) {
+                if (childFile.isFile()) {
+                    folderSize += childFile.length();
                 }
             }
             newFoldersMap.put(folder, folderSize);

@@ -60,14 +60,14 @@ public class ScansInfoIn {
                         new ErrorLogger(e);
                         JOptionPane.showMessageDialog(null,
                                 "Scan file '" + scanFile.getName() + "' could not be opened. "
-                                + "Verify program's root folder access permissions.",
+                                + "Verify folder access permissions.",
                                 "Error: File Access Denied",
                                 JOptionPane.ERROR_MESSAGE);
                     } catch (ClassNotFoundException e) {
                         new ErrorLogger(e);
                         JOptionPane.showMessageDialog(null,
-                                "Scan file '" + scanFile.getName() + "' is an outdated scan file from older versions of the program. "
-                                + "Manually deleting it from 'history' folder should fix the problem.",
+                                "Scan file '" + scanFile.getName() + "' is an outdated scan file. "
+                                + "Manually deleting it from the 'history' folder should fix the problem.",
                                 "Error: Invalid Data",
                                 JOptionPane.ERROR_MESSAGE);
                     }
