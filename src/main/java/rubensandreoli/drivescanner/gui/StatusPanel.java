@@ -24,64 +24,74 @@ public class StatusPanel extends javax.swing.JPanel {
         initComponents();
     }
 
-    void setStatus(String status){
-        txtStatus.setText(status);
-        txtStatus.setCaretPosition(0);
+    void setMessage(String msg){
+        txtMessage.setText(msg);
+        txtMessage.setCaretPosition(0);
     }
     
-    void setTotal(int total){
-        txtTotal.setText(StringFormatter.formatNumber(total));
+    void setTotals(int folders, int files){
+        txtTotalFolders.setText(StringFormatter.formatNumber(folders));
+        txtTotalFiles.setText(StringFormatter.formatNumber(files));
     }
     
-    void clearStatus(){
-        txtStatus.setText("");
+    void clearMessage(){
+        txtMessage.setText("");
     }
     
     void clear(){
-        txtStatus.setText("");
-        txtTotal.setText("");
+        txtMessage.setText("");
+        txtTotalFolders.setText("");
+        txtTotalFiles.setText("");
     }
     
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        txtStatus = new javax.swing.JTextField();
-        txtTotal = new javax.swing.JTextField();
+        txtMessage = new javax.swing.JTextField();
+        txtTotalFolders = new javax.swing.JTextField();
+        txtTotalFiles = new javax.swing.JTextField();
 
-        txtStatus.setEditable(false);
-        txtStatus.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
+        txtMessage.setEditable(false);
+        txtMessage.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
 
-        txtTotal.setEditable(false);
-        txtTotal.setHorizontalAlignment(javax.swing.JTextField.TRAILING);
-        txtTotal.setToolTipText("Total of folders in the selected scan.");
-        txtTotal.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
+        txtTotalFolders.setEditable(false);
+        txtTotalFolders.setHorizontalAlignment(javax.swing.JTextField.TRAILING);
+        txtTotalFolders.setToolTipText("Total of folders in the selected scan.");
+        txtTotalFolders.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
+
+        txtTotalFiles.setEditable(false);
+        txtTotalFiles.setHorizontalAlignment(javax.swing.JTextField.TRAILING);
+        txtTotalFiles.setToolTipText("Total of files in the selected scan.");
+        txtTotalFiles.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(0, 0, 0)
-                .addComponent(txtStatus, javax.swing.GroupLayout.DEFAULT_SIZE, 314, Short.MAX_VALUE)
+                .addComponent(txtMessage, javax.swing.GroupLayout.DEFAULT_SIZE, 222, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(txtTotalFiles, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(txtTotal, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, 0))
+                .addComponent(txtTotalFolders, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addGap(0, 0, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(txtStatus, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(txtTotal, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(txtMessage, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtTotalFolders, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtTotalFiles, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(0, 0, 0))
         );
     }// </editor-fold>//GEN-END:initComponents
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JTextField txtStatus;
-    private javax.swing.JTextField txtTotal;
+    private javax.swing.JTextField txtMessage;
+    private javax.swing.JTextField txtTotalFiles;
+    private javax.swing.JTextField txtTotalFolders;
     // End of variables declaration//GEN-END:variables
 }

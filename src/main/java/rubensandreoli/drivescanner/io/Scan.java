@@ -70,25 +70,7 @@ public class Scan implements Serializable, Comparable<Scan> {
         }
         return scanSize;
     }
-    
-//    private void setParentFolders(){
-//        for (Folder folder : folders){
-//            final String folderName = folder.toString();
-//            if (folderName.toString().replace("\\", "").length() == folderName.toString().length()-1){
-//                folder.setRoot(true);
-//            }else{
-//                Folder parentFolder = folder;
-//                while (folders.contains(parentFolder) && !parentFolder.equals(this.drive)){
-//                        if (!folders.contains(parentFolder.getParentFile())){
-//                                break;
-//                        }
-//                        parentFolder = parentFolder.getParentFile();
-//                }
-//                parentFolders.add(parentFolder);
-//            }
-//        }
-//    }
-    
+
     static String createFilename(File drive, String name){
         String rootPath = drive.getPath(); 
         String rootLetter = rootPath.substring(0, rootPath.length()-2).toLowerCase();
@@ -142,8 +124,16 @@ public class Scan implements Serializable, Comparable<Scan> {
         return folders.isEmpty();
     }
     
-    public int getLenght(){
+    public int getTotalFolders(){
         return folders.size();
+    }
+    
+    public int getTotalFiles(){
+        int total = 0;
+        for (Folder folder : folders) {
+            total += folder.getTotalFiles();
+        }
+        return total;
     }
     
     public Set<Folder> getFolders() {

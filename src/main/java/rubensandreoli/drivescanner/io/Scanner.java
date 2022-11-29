@@ -18,7 +18,9 @@ package rubensandreoli.drivescanner.io;
 
 import java.io.File;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class Scanner {
@@ -72,25 +74,29 @@ public class Scanner {
     }
 
     public void update(Scan scan) { //TODO: try to improve performance.
-        Set<Folder> folders = scan.getFolders();
+        final Set<Folder> folders = scan.getFolders();
         for (Folder folder : folders) {
             if(handler.isInterrupted()) return;
             handler.setStatus(folder.toString());
             File folderFile = folder.getFile();
+            
             if (!folderFile.canRead()) {
                 folder.setDeleted();
             } else {
+                Map<String, Long> files = new HashMap<>();
                 File[] folderFiles = folderFile.listFiles();
                 if (folderFiles != null) {
                     for (File childFile : folderFiles) {
                         if(handler.isInterrupted()) return;
                         if (childFile.isFile()) {
-                            folder.addFile(childFile.getName(), childFile.length());
+                            files.put(childFile.getName(), childFile.length());
                         }
                     }
                 }
+                folder.setFiles(files);
                 folder.calculateSize();
             }
+            
         }
         scan.setUpdated(new Date());
     }

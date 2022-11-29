@@ -61,7 +61,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         //LOAD REPOSITORY
         Repository repository = Repository.getInstance();
         SwingWorker <Repository.Data, String> loadWorker = new SwingWorker<>() {
-            private List<Repository.Error> errors = new ArrayList<>(); //changed from another thread.
+            private final List<Repository.Error> errors = new ArrayList<>(); //changed from another thread.
             
             @Override
             protected Repository.Data doInBackground() throws Exception {
@@ -82,7 +82,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
             protected void process(List<String> msgs) {
                 if(isDone()) return; //queued values may be set after worker is done.
                 for (String msg : msgs) {
-                    statusPanel.setStatus("Loading: "+msg);
+                    statusPanel.setMessage("Loading: "+msg);
                 }
             }
             
@@ -160,7 +160,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         setEditEnabled(!locked); //edit scan only if not locked.
         toolsPanel.setScan(currentScan);
         tablePanel.setScan(currentScan);
-        statusPanel.setTotal(currentScan.getLenght());
+        statusPanel.setTotals(currentScan.getTotalFolders(), currentScan.getTotalFiles());
     }
     
     private void setLocked(boolean locked){
@@ -318,14 +318,14 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
             protected void process(List<String> msgs) {
                 if(isDone()) return; //queued values may be set after worker is done.
                 for (String msg : msgs) {
-                    statusPanel.setStatus(msg);
+                    statusPanel.setMessage(msg);
                 }
             }
 
             @Override
             protected void done() {
                 statusPanel.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-                statusPanel.clearStatus();
+                statusPanel.clearMessage();
                 setLocked(false);
                 
                 Scan newScan;
@@ -386,14 +386,14 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
             protected void process(List<String> msgs) {
                 if(isDone()) return; //queued values may be set after worker is done.
                 for (String msg : msgs) {
-                    statusPanel.setStatus(msg);
+                    statusPanel.setMessage(msg);
                 }
             }
 
             @Override
             protected void done() {
                 statusPanel.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-                statusPanel.clearStatus();
+                statusPanel.clearMessage();
                 setLocked(false);
                 if(!isCancelled()){
                     //TODO: save scan in new thread. Or the same as scan but return scan and only affect this frame on done.

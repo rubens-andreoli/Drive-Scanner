@@ -35,17 +35,19 @@ public class Folder implements Serializable, Comparable<Folder> {
     private State state;
     private boolean calculated = false;
     private Map<String, Long> files = new HashMap<>(); //ignored files' order for performance reasons.
-//    private boolean isRoot;
 
     public Folder(File file) {
         this.file = file;
     }
     
     void addFile(String name, long size){
-        Long oldSize = files.put(name, size);
-        if(oldSize == null || size != oldSize){
-            calculated = false;
-        }
+        files.put(name, size);
+        calculated = false;
+    }
+    
+    void setFiles(Map<String, Long> files){
+        this.files = files;
+        calculated = false;
     }
     
     void calculateSize(){
@@ -67,8 +69,8 @@ public class Folder implements Serializable, Comparable<Folder> {
         }
         calculated = true;
     }
-    
-    void setDeleted(){ //if folder is created again, calculateSize() will remove deleted state.
+ 
+    void setDeleted(){ //if folder is found again, calculateSize() will remove deleted state.
         state = State.DELETED;
         files.clear();
         size = 0;
@@ -83,18 +85,14 @@ public class Folder implements Serializable, Comparable<Folder> {
         if(!calculated) calculateSize();
         return size;
     }
+    
+    public int getTotalFiles(){
+        return files.size();
+    }
 
     public State getState() {
         return state;
     }
-
-//    public boolean isRoot() {
-//        return isRoot;
-//    }
-//
-//    void setRoot(boolean isRoot) {
-//        this.isRoot = isRoot;
-//    }
 
     @Override
     public int hashCode() {
