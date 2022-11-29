@@ -38,13 +38,11 @@ public class Repository { //not synchronized.
         private final Map<File, Set<Scan>> scans = new HashMap<>();
 
         void addScan(Scan scan){
-            final File key = scan.getDrive();
+            File key = scan.getDrive();
             if(!scans.containsKey(key)){
-                scans.put(key, new TreeSet<>());
+                scans.put(key, new TreeSet<>()); //scans with the same date won't be added.
             }
-
-            final Set<Scan> value = scans.get(key);
-            value.add(scan);
+            scans.get(key).add(scan);
         }
         
         void deleteScan(Scan scan) {
@@ -93,6 +91,7 @@ public class Repository { //not synchronized.
     @FunctionalInterface
     public static interface LoadListener{
         default void onLoaded(Data data){};
+        default void onLoading(String filename){};
         void onLoadError(Error e);
     }
 
@@ -103,8 +102,9 @@ public class Repository { //not synchronized.
     }
     
     @FunctionalInterface
-    public static interface DeleteListener {
-        void removed(Collection<Scan> removed, Collection<Scan> failed);
+    public static interface MergeListener{
+        default void onMerged(Scan scan){};
+        void onMergeError(Error e);
     }
     //</editor-fold>
 
@@ -113,7 +113,7 @@ public class Repository { //not synchronized.
     
     private static final Repository INSTANCE = new Repository();
     private final File folder;
-    private Data data = new Data();
+    private final Data data = new Data();
 
     private Repository() {
         folder = new File(System.getProperty("user.dir"), FOLDER_NAME);
@@ -123,9 +123,10 @@ public class Repository { //not synchronized.
     }
 
     public Data load(LoadListener listener) {
-        File[] scanFiles = folder.listFiles();
-        for (File scanFile : scanFiles) {
-            if (scanFile.isFile() && scanFile.getName().endsWith(FILE_EXTENSION)) {
+        for (File scanFile : folder.listFiles()) {
+            final String filename = scanFile.getName();
+            if (scanFile.isFile() && filename.endsWith(FILE_EXTENSION)) {
+                listener.onLoading(filename);
                 try (var ois = new ObjectInputStream(new FileInputStream(scanFile))) {
                     data.addScan((Scan) ois.readObject());
                 } catch (FileNotFoundException e) {
@@ -164,44 +165,61 @@ public class Repository { //not synchronized.
         return new File(folder, scanFilename+FILE_EXTENSION);
     }
     
-    public boolean existsScan(File drive, String name){
-        return createScanFile(Scan.createFilename(drive, name)).isFile();
+    public boolean deleteScan(Scan scan){
+        return deleteScan(scan, null);
+    }
+    
+    private boolean deleteScan(Scan scan, Boolean remove){ //a null remove will remove from memory only if succeeded.
+        File scanFile = createScanFile(scan.getFilename());
+        boolean succeeded = (scanFile.isFile() && scanFile.delete());
+        if((remove == null && succeeded) || (remove != null && remove)){
+            data.deleteScan(scan);
+        }
+        return succeeded;
+    }
+    
+    public Collection<Scan> deleteScans(File drive){
+        return deleteScans(data.getDriveScans(drive), null);
+    }
+    
+    private Collection<Scan> deleteScans(Collection<Scan> scans, Boolean remove){
+        Collection<Scan> failed = new HashSet<>();
+        for (Scan scan : scans) {
+            if(!deleteScan(scan, remove)) failed.add(scan);
+        }
+        return failed;
     }
     
     public Scan renameScan(Scan scan, String newName, SaveListener saveListener){
         Scan newScan = new Scan(newName, scan);
         File newScanFile = createScanFile(newScan.getFilename());
         
-        if(!newScanFile.isFile() && saveScan(newScan, saveListener)){  //add new and delete old only if saved.
-            deleteScan(scan);
-            data.addScan(newScan); //FIX: newScan being deleted along old if added before. Why? They should not have the same hashcode.
+        if(!newScanFile.isFile() && saveScan(newScan, saveListener)){
+            deleteScan(scan, true); //delete must be performed first; treeSet won't allow scans with the same date.
+            data.addScan(newScan);
             return newScan;
         }
         return null;
     }
     
-    public boolean deleteScan(Scan scan){
-        return deleteScan(scan, false);
-    }
-    
-    private boolean deleteScan(Scan scan, boolean removeAnyway){
-        File scanFile = createScanFile(scan.getFilename());
-        boolean succeeded = false;
-        if(scanFile.isFile() && scanFile.delete()){
-            succeeded = true;
+    public Scan mergeScans(Collection<Scan> scans, Scan into, MergeListener listener){
+        Scan mergedScan = new Scan(into);
+        scans.remove(into); //remove base if passed along with the list; as it is the case.
+        mergedScan.merge(scans);
+        
+        if(!saveScan(mergedScan, e -> listener.onMergeError(e))){
+            return null;
         }
-        if(removeAnyway || succeeded) data.deleteScan(scan);
-        return succeeded;
+        
+        deleteScans(scans, true);
+        data.addScan(mergedScan);
+        
+        listener.onMerged(mergedScan);
+        return mergedScan;
     }
-    
-    public void deleteScans(File drive, DeleteListener listener){
-        Collection<Scan> removed = new HashSet<>();
-        Collection<Scan> failed = new HashSet<>();
-        for (Scan scan : data.getDriveScans(drive)) {
-            if(deleteScan(scan, false)) removed.add(scan);
-            else failed.add(scan);
-        }
-        listener.removed(removed, failed);
+
+    public boolean existsScan(File drive, String name){
+        return createScanFile(Scan.createFilename(drive, name)).isFile();
     }
 
     public Data getData() {

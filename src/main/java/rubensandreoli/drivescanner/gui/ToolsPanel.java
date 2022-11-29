@@ -68,6 +68,9 @@ public class ToolsPanel extends javax.swing.JPanel {
         if(scan.isUpdated()){
             txtUpdatedSize.setText(StringFormatter.formatSize(scan.getUpdatedSize()));
             txtUpdatedDate.setText(StringFormatter.formatDate(scan.getUpdatedDate()));
+        }else{
+            txtUpdatedSize.setText("");
+            txtUpdatedDate.setText("");
         }
     }
     

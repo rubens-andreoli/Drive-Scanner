@@ -37,6 +37,14 @@
                     <Property name="text" type="java.lang.String" value="Rename"/>
                   </Properties>
                 </MenuItem>
+                <MenuItem class="javax.swing.JMenuItem" name="mniMerge">
+                  <Properties>
+                    <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.editors.KeyStrokeEditor">
+                      <KeyStroke key="F3"/>
+                    </Property>
+                    <Property name="text" type="java.lang.String" value="Merge"/>
+                  </Properties>
+                </MenuItem>
                 <MenuItem class="javax.swing.JMenuItem" name="mniDelete">
                   <Properties>
                     <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.editors.KeyStrokeEditor">
@@ -72,7 +80,7 @@
                 <MenuItem class="javax.swing.JCheckBoxMenuItem" name="mncTools">
                   <Properties>
                     <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.editors.KeyStrokeEditor">
-                      <KeyStroke key="F3"/>
+                      <KeyStroke key="Shift+T"/>
                     </Property>
                     <Property name="selected" type="boolean" value="true"/>
                     <Property name="text" type="java.lang.String" value="Tools"/>

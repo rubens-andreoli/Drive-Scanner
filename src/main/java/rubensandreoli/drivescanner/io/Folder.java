@@ -50,8 +50,8 @@ public class Folder implements Serializable, Comparable<Folder> {
     
     void calculateSize(){
         long tempSize = 0L;
-        for (long size : files.values()) {
-            tempSize += size;
+        for (long fileSize : files.values()) {
+            tempSize += fileSize;
         }
         if(state == null){ //just created.
             state = State.UNCHANGED;

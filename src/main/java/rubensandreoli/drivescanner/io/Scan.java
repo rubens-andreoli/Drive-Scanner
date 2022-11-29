@@ -18,8 +18,8 @@ package rubensandreoli.drivescanner.io;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Date;
-import java.util.Objects;
 import java.util.Set;
 
 public class Scan implements Serializable, Comparable<Scan> {
@@ -33,13 +33,21 @@ public class Scan implements Serializable, Comparable<Scan> {
     private final Set<Folder> folders;
     
     private final Date date; 
-    private final long size;
+    private long size;
     
     private Date updatedDate;
     private long updatedSize;
 
+    public Scan(Scan scan){
+        this(scan.name, scan);
+    }
+    
     public Scan(String name, Scan scan){
         this(name, scan.drive, scan.folders, scan.date, scan.size);
+        if(scan.isUpdated()){
+            this.updatedDate = scan.updatedDate;
+            this.updatedSize = scan.updatedSize;
+        }
     }
     
     public Scan(String name, File drive, Set<Folder> folders) {
@@ -47,15 +55,15 @@ public class Scan implements Serializable, Comparable<Scan> {
     }
     
     private Scan(String name, File drive, Set<Folder> folders, Date date, long size){
-        this.name = Objects.requireNonNull(name);
-        this.drive = Objects.requireNonNull(drive);
-        this.folders = Objects.requireNonNull(folders);
+        this.name = name;
+        this.drive = drive;
+        this.folders = folders;
         this.filename = Scan.createFilename(drive, name);
         this.date = date;
         this.size = size;
     }
 
-    private static long calculateSize(Set<Folder> folders){
+   private static long calculateSize(Set<Folder> folders){
         long scanSize = 0;
         for (Folder subfolder : folders) {
             scanSize += subfolder.getSize();
@@ -91,6 +99,15 @@ public class Scan implements Serializable, Comparable<Scan> {
     void setUpdated(Date updatedDate) {
         this.updatedDate = updatedDate;
         updatedSize = calculateSize(folders);
+    }
+    
+    void merge(Collection<Scan> scans){
+        for (Scan s : scans) {
+            folders.addAll(s.getFolders());
+            size += s.size;
+        }
+        updatedDate = null;
+        updatedSize = 0;
     }
 
     public File getDrive() {

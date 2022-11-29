@@ -17,6 +17,7 @@
 package rubensandreoli.drivescanner.gui;
 
 import java.util.Collection;
+import java.util.List;
 import javax.swing.DefaultListModel;
 import rubensandreoli.drivescanner.gui.support.ActionEvent;
 import rubensandreoli.drivescanner.gui.support.ActionEventListener;
@@ -40,8 +41,10 @@ public class ListPanel extends javax.swing.JPanel {
         initComponents();
         
         lstScans.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && lstScans.getSelectedValue() != null){
-                fireAction(ActionEvent.SELECT_SCAN);
+            if (!e.getValueIsAdjusting()){
+                if(!isMultipleSelected() && lstScans.getSelectedValue() != null){
+                    fireAction(ActionEvent.SELECT_SCAN); //fire if only one is selected.
+                }
             }
         });
     }
@@ -55,37 +58,53 @@ public class ListPanel extends javax.swing.JPanel {
             listener.eventOccurred(e);
         }
     }
-    
+        
     Scan getSelectedScan() {
         return lstScans.getSelectedValue();
     }
+
+    List<Scan> getSelectedScans(){
+        return lstScans.getSelectedValuesList();
+    }
     
-    void setScans(Collection<Scan> scanNames) {
+    boolean isMultipleSelected(){
+        return lstScans.getSelectedIndices().length > 1;
+    }
+
+    void setScans(Collection<Scan> scans) {
         lstScans.setValueIsAdjusting(true);
         lstScansModel.clear();
-        for (Scan scan : scanNames) {
+        for (Scan scan : scans) {
             lstScansModel.addElement(scan);
         }
         lstScans.setValueIsAdjusting(false);
     }
     
+    void setSelectedScan(Scan scan){
+        lstScans.setSelectedValue(scan, true);
+    }
+    
     void addScan(Scan scan){
         lstScansModel.addElement(scan);
-        lstScans.setSelectedValue(scan, true);
+        setSelectedScan(scan);
     }
     
     void removeScan(Scan scan){
         lstScansModel.removeElement(scan);
     }
     
+    void removeScans(Collection<Scan> scans){
+        lstScans.setValueIsAdjusting(true);
+        for (Scan scan : scans) {
+            removeScan(scan);
+        }
+        lstScans.setValueIsAdjusting(false);
+    }
+    
     void clear(){
         lstScansModel.clear();
     }
-    
-//    void updateScan(Scan scan){
-//        lstScansModel.update(scan);
-//    }
-    
+
     void replaceScan(Scan oldScan, Scan newScan){
         lstScans.setValueIsAdjusting(true);
         final int index = lstScansModel.indexOf(oldScan);
