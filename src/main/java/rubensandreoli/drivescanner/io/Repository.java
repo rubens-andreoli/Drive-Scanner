@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,6 +70,13 @@ public class Repository { //not synchronized.
             }
             return value;
         }
+        
+        public boolean isEmpty(File drive){
+            if(drive == null) return scans.isEmpty();
+            else{
+                return !scans.containsKey(drive);
+            }
+        }
 
     }
     //</editor-fold>
@@ -82,6 +90,10 @@ public class Repository { //not synchronized.
     public static interface SaveListener{
         void onSaved(Scan scan);
         void onSaveException(Exception e, String scanName);
+    }
+        
+    public static interface DeleteListener {
+        void removed(Collection<Scan> removed, Collection<Scan> failed);
     }
     //</editor-fold>
     
@@ -157,12 +169,27 @@ public class Repository { //not synchronized.
     }
     
     public boolean deleteScan(Scan scan){
+        return deleteScan(scan, false);
+    }
+    
+    private boolean deleteScan(Scan scan, boolean removeAnyway){
         File scanFile = createScanFile(scan.getFilename());
+        boolean succeeded = false;
         if(scanFile.isFile() && scanFile.delete()){
-            data.deleteScan(scan);
-            return true;
+            succeeded = true;
         }
-        return false;
+        if(removeAnyway || succeeded) data.deleteScan(scan);
+        return succeeded;
+    }
+    
+    public void deleteScans(File drive, DeleteListener listener){
+        Collection<Scan> removed = new HashSet<>();
+        Collection<Scan> failed = new HashSet<>();
+        for (Scan scan : data.getDriveScans(drive)) {
+            if(deleteScan(scan, false)) removed.add(scan);
+            else failed.add(scan);
+        }
+        listener.removed(removed, failed);
     }
 
     public Data getData() {

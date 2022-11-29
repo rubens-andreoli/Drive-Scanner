@@ -45,6 +45,11 @@
                     <Property name="text" type="java.lang.String" value="Delete"/>
                   </Properties>
                 </MenuItem>
+                <MenuItem class="javax.swing.JMenuItem" name="mniDeleteAll">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" value="Delete All"/>
+                  </Properties>
+                </MenuItem>
                 <MenuItem class="javax.swing.JPopupMenu$Separator" name="sprEdit">
                 </MenuItem>
                 <MenuItem class="javax.swing.JMenuItem" name="mniUpdate">

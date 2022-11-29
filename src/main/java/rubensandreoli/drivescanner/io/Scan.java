@@ -25,6 +25,9 @@ import java.util.Set;
 public class Scan implements Serializable, Comparable<Scan> {
     private static final long serialVersionUID = 1L;
 
+    private static final String FILENAME_DIVISOR = "-";
+    private static final String NORMALIZATION_REGEX = "[<>:\"\\\\/|?*]";
+    
     private final String name, filename;
     private final File drive;
     private final Set<Folder> folders;
@@ -81,8 +84,8 @@ public class Scan implements Serializable, Comparable<Scan> {
     static String createFilename(File drive, String name){
         String rootPath = drive.getPath(); 
         String rootLetter = rootPath.substring(0, rootPath.length()-2).toLowerCase();
-        String normalizedName = name.replaceAll("[<>:\"\\\\/|?*]", "").toLowerCase(); 
-        return rootLetter+"-"+normalizedName;
+        String normalizedName = name.replaceAll(NORMALIZATION_REGEX, "").toLowerCase(); 
+        return rootLetter+FILENAME_DIVISOR+normalizedName;
     }
 
     void setUpdated(Date updatedDate) {

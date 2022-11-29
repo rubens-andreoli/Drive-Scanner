@@ -20,6 +20,7 @@ import java.awt.Cursor;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -77,6 +78,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         mniExit.addActionListener(e -> eventOccurred(ActionEvent.EXIT));
         mniRename.addActionListener(e -> eventOccurred(ActionEvent.RENAME));
         mniDelete.addActionListener(e -> eventOccurred(ActionEvent.DELETE));
+        mniDeleteAll.addActionListener(e -> eventOccurred(ActionEvent.DELETE_ALL));
         mniUpdate.addActionListener(e -> eventOccurred(ActionEvent.UPDATE));
         mncTools.addActionListener(e -> eventOccurred(ActionEvent.SIDE_PANEL));
         mncUnchanged.addActionListener(e -> eventOccurred(ActionEvent.TABLE_FILTER));
@@ -109,6 +111,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
     private void scanDeselected(){
         currentScan = null;
         setEditEnabled(false);
+        mniDeleteAll.setEnabled(isSelectedDriveNotEmpty());
         toolsPanel.clear();
         tablePanel.clear();
         statusPanel.clear();
@@ -128,6 +131,11 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         mniScan.setEnabled(!locked);
         mniStop.setEnabled(locked);
         setEditEnabled(!locked);
+        mniDeleteAll.setEnabled(locked? locked : isSelectedDriveNotEmpty()); //if not locked check is there is any scans to delete.
+    }
+        
+    private boolean isSelectedDriveNotEmpty(){
+        return !data.isEmpty(toolsPanel.getSelectedDrive()); //data should never be null after 'this' initialization.
     }
     
     @Override
@@ -186,6 +194,29 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                                 "Error: File Not Found",
                                 JOptionPane.ERROR_MESSAGE);
                     }
+                }
+                break;
+            case DELETE_ALL:
+                int confirmAll = JOptionPane.showConfirmDialog(MainFrame.this,
+                        "Are you sure you want to delete all scans from the selected drive?",
+                        "Delete Scan",
+                        JOptionPane.OK_CANCEL_OPTION);
+                if(confirmAll == JOptionPane.OK_OPTION){
+                    Repository.getInstance().deleteScans(toolsPanel.getSelectedDrive(), (removed, failed) -> {
+                        if(failed.isEmpty()){
+                            listPanel.clear();
+                        }else{
+                            for (Scan scan : removed) {
+                                listPanel.removeScan(scan);
+                            }
+                            JOptionPane.showMessageDialog(MainFrame.this, //TODO: display in a textArea.
+                                "Scan file(s) "+Arrays.toString(failed.toArray())+" not found. "
+                                + "Reopen the program to clear it from the Scans List.",
+                                "Error: File Not Found",
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                        scanDeselected();
+                    });
                 }
                 break;
             case UPDATE:
@@ -399,6 +430,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         mnuEdit = new javax.swing.JMenu();
         mniRename = new javax.swing.JMenuItem();
         mniDelete = new javax.swing.JMenuItem();
+        mniDeleteAll = new javax.swing.JMenuItem();
         sprEdit = new javax.swing.JPopupMenu.Separator();
         mniUpdate = new javax.swing.JMenuItem();
         mnuView = new javax.swing.JMenu();
@@ -455,6 +487,9 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         mniDelete.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DELETE, 0));
         mniDelete.setText("Delete");
         mnuEdit.add(mniDelete);
+
+        mniDeleteAll.setText("Delete All");
+        mnuEdit.add(mniDeleteAll);
         mnuEdit.add(sprEdit);
 
         mniUpdate.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0));
@@ -517,6 +552,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
     private javax.swing.JCheckBoxMenuItem mncUnchanged;
     private javax.swing.JMenuItem mniAbout;
     private javax.swing.JMenuItem mniDelete;
+    private javax.swing.JMenuItem mniDeleteAll;
     private javax.swing.JMenuItem mniExit;
     private javax.swing.JMenuItem mniRename;
     private javax.swing.JMenuItem mniScan;

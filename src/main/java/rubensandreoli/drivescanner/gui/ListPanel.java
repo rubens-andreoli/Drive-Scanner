@@ -78,9 +78,13 @@ public class ListPanel extends javax.swing.JPanel {
         lstScansModel.removeElement(scan);
     }
     
-    void updateScan(Scan scan){
-        lstScansModel.update(scan);
+    void clear(){
+        lstScansModel.clear();
     }
+    
+//    void updateScan(Scan scan){
+//        lstScansModel.update(scan);
+//    }
     
     void replaceScan(Scan oldScan, Scan newScan){
         lstScans.setValueIsAdjusting(true);
