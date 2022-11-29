@@ -82,6 +82,10 @@ public class ToolsPanel extends javax.swing.JPanel {
         btnUpdate.setEnabled(enabled);
     }
     
+    void setStopEnabled(boolean enabled){
+        btnStop.setEnabled(enabled);
+    }
+    
     void clear() {
         txtSize.setText("");
         txtDate.setText("");

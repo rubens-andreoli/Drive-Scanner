@@ -20,6 +20,7 @@ import java.awt.Cursor;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -48,8 +49,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
 
     private Repository.Data data;
     private Scan currentScan;
-    private SwingWorker <Scan, String> scanWorker;
-    private SwingWorker <Void, String> updateWorker;
+    private SwingWorker currentWorker;
     private boolean locked = false;
 
     @SuppressWarnings("LeakingThisInConstructor")
@@ -58,18 +58,34 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         setLocationRelativeTo(null);
         
         Repository repository = Repository.getInstance();
-        //TODO: load data in new thread.
-        repository.load(new Repository.LoadListener(){
+        SwingWorker <Repository.Data, Void> loadWorker = new SwingWorker<>() {
+            private List<Repository.Error> errors = new ArrayList<>(); //changed from another thread.
+            
             @Override
-            public void onLoaded(Repository.Data data) {
-                MainFrame.this.data = data;
+            protected Repository.Data doInBackground() throws Exception {
+                return repository.load(new Repository.LoadListener(){
+                    @Override
+                    public void onLoadError(Repository.Error e) {
+                        errors.add(e);
+                    }
+                });
             }
-
+            
             @Override
-            public void onLoadException(Exception e, String fileName) {
-                showLoadException(e, fileName); //TODO: option to delete when failed to load.
+            protected void done() {
+                MainFrame.this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                data = Repository.getInstance().getData();
+                eventOccurred(ActionEvent.SELECT_DRIVE);
+                setLocked(false);
+                for (Repository.Error error : errors) { //TODO: better way to display errors combined.
+                    showLoadException(error.cause, error.message);  //TODO: option to delete when failed to load.
+                }
             }
-        });
+        };
+        setLocked(true);
+        setStopEnabled(false);
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        loadWorker.execute();
         
         //SET LISTENERS
         mniScan.addActionListener(e -> eventOccurred(ActionEvent.SCAN));
@@ -88,6 +104,11 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         listPanel.setListener(this);
         
         toolsPanel.addDrives(Scanner.getRoots());
+    }
+    
+    private void setStopEnabled(boolean enabled){
+        toolsPanel.setStopEnabled(enabled);
+        mniStop.setEnabled(enabled);
     }
     
     private String createName(String msg, String title, String msgError){
@@ -131,19 +152,21 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         mniScan.setEnabled(!locked);
         mniStop.setEnabled(locked);
         setEditEnabled(!locked);
-        mniDeleteAll.setEnabled(locked? locked : isSelectedDriveNotEmpty()); //if not locked check is there is any scans to delete.
+        mniDeleteAll.setEnabled(locked? locked : isSelectedDriveNotEmpty()); //if not locked, check if there is any scans to delete.
     }
         
     private boolean isSelectedDriveNotEmpty(){
-        return !data.isEmpty(toolsPanel.getSelectedDrive()); //data should never be null after 'this' initialization.
+        return !data.isEmpty(toolsPanel.getSelectedDrive());
     }
     
     @Override
     public void eventOccurred(ActionEvent e) {
         switch (e) {
-            case SELECT_DRIVE:
-                scanDeselected();
-                listPanel.setScans(data.getDriveScans(toolsPanel.getSelectedDrive()));
+            case SELECT_DRIVE: 
+                if(data != null){ //data is null if still being loaded.
+                    scanDeselected();
+                    listPanel.setScans(data.getDriveScans(toolsPanel.getSelectedDrive()));
+                }
                 break;
             case SELECT_SCAN:
                 scanSelected();
@@ -167,7 +190,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                     }
 
                     @Override
-                    public void onSaveException(Exception e, String scanName) {
+                    public void onSaveError(Repository.Error e) {
                         JOptionPane.showMessageDialog(MainFrame.this,
                             "Scan file not found or could not be renamed. "
                             + "Reopen the program to clear it from the Scans List. "
@@ -209,7 +232,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                             for (Scan scan : removed) {
                                 listPanel.removeScan(scan);
                             }
-                            JOptionPane.showMessageDialog(MainFrame.this, //TODO: display in a textArea.
+                            JOptionPane.showMessageDialog(MainFrame.this, //TODO: display list in a jlist.
                                 "Scan file(s) "+Arrays.toString(failed.toArray())+" not found. "
                                 + "Reopen the program to clear it from the Scans List.",
                                 "Error: File Not Found",
@@ -222,13 +245,8 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
             case UPDATE:
                 update();
                 break;
-            case STOP: //TODO: better solution then always stopping both.
-                if(scanWorker != null){ //shouldn't happen, just a precaution
-                    scanWorker.cancel(false);
-                }
-                if(updateWorker != null){
-                    updateWorker.cancel(false);
-                }
+            case STOP:
+                if(currentWorker != null) currentWorker.cancel(false);
                 break;
             case EXIT:
                 System.exit(0);
@@ -255,7 +273,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         );
         if(scanName == null) return;
         
-        scanWorker = new SwingWorker<>() {
+        SwingWorker <Scan, String> scanWorker = new SwingWorker<>() {
             @Override
             protected Scan doInBackground() throws Exception {
                 File drive = toolsPanel.getSelectedDrive();
@@ -276,7 +294,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
             
             @Override
             protected void process(List<String> msgs) {
-                if(isDone()) return; //queued values may be set after worker is done
+                if(isDone()) return; //queued values may be set after worker is done.
                 for (String msg : msgs) {
                     statusPanel.setStatus(msg);
                 }
@@ -295,7 +313,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                     newScan = null;
                 }
                 
-                if(newScan == null) return; //exception or cancelled;
+                if(newScan == null) return; //exception or cancelled.
                 if(!newScan.isEmpty()){
                     //TODO: save scan in new thread. Or the same as scan but return scan and only affect this frame on done.
                     Repository.getInstance().addScan(newScan, new Repository.SaveListener(){
@@ -303,12 +321,11 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                         public void onSaved(Scan scan) {
                             currentScan = scan;
                             listPanel.addScan(currentScan);
-                            System.out.println(Thread.currentThread().getName());
                         }
 
                         @Override
-                        public void onSaveException(Exception e, String scanName) {
-                            showSaveException(e, scanName);
+                        public void onSaveError(Repository.Error e) {
+                            showSaveException(e.cause, e.message);
                         }
                     });
                 }else{
@@ -321,11 +338,12 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         };
         setLocked(true);
         statusPanel.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        currentWorker = scanWorker;
         scanWorker.execute();
     }
     
     private void update(){
-        updateWorker = new SwingWorker<>() {
+        SwingWorker <Void, String> updateWorker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() throws Exception {
                 new Scanner(new Scanner.Handler(){
@@ -339,21 +357,12 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                         return isCancelled();
                     }
                 }).update(currentScan);
-                Repository.getInstance().updateScan(currentScan, new Repository.SaveListener(){
-                    @Override
-                    public void onSaved(Scan scan) {}
-
-                    @Override
-                    public void onSaveException(Exception e, String scanName) {
-                        showSaveException(e, scanName);
-                    }
-                });
                 return null;
             }
 
             @Override
             protected void process(List<String> msgs) {
-                if(isDone()) return;
+                if(isDone()) return; //queued values may be set after worker is done.
                 for (String msg : msgs) {
                     statusPanel.setStatus(msg);
                 }
@@ -364,12 +373,17 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
                 statusPanel.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
                 statusPanel.clearStatus();
                 setLocked(false);
-                if(!isCancelled()) scanSelected();
+                if(!isCancelled()){
+                    //TODO: save scan in new thread. Or the same as scan but return scan and only affect this frame on done.
+                    Repository.getInstance().updateScan(currentScan, e -> showSaveException(e.cause, e.message));
+                    scanSelected();
+                }
             }
         };
         setLocked(true);
         statusPanel.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        scanWorker.execute();
+        currentWorker = updateWorker;
+        updateWorker.execute();
     }
     
         
@@ -489,6 +503,7 @@ public class MainFrame extends javax.swing.JFrame implements ActionEventListener
         mnuEdit.add(mniDelete);
 
         mniDeleteAll.setText("Delete All");
+        mniDeleteAll.setEnabled(false);
         mnuEdit.add(mniDeleteAll);
         mnuEdit.add(sprEdit);
 

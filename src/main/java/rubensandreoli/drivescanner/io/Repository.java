@@ -23,14 +23,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.swing.JOptionPane;
 
 public class Repository { //not synchronized.
 
@@ -82,27 +80,40 @@ public class Repository { //not synchronized.
     //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="LISTENERS">
+    public static class Error{
+        public final String message;
+        public final Exception cause;
+
+        public Error(String message, Exception cause) {
+            this.message = message;
+            this.cause = cause;
+        }
+    }
+    
+    @FunctionalInterface
     public static interface LoadListener{
-        void onLoaded(Data data);
-        void onLoadException(Exception e, String fileName);
+        default void onLoaded(Data data){};
+        void onLoadError(Error e);
     }
 
+    @FunctionalInterface
     public static interface SaveListener{
-        void onSaved(Scan scan);
-        void onSaveException(Exception e, String scanName);
+        default void onSaved(Scan scan){};
+        void onSaveError(Error e);
     }
-        
+    
+    @FunctionalInterface
     public static interface DeleteListener {
         void removed(Collection<Scan> removed, Collection<Scan> failed);
     }
     //</editor-fold>
-    
+
     private static final String FOLDER_NAME = "history";
     private static final String FILE_EXTENSION = ".scan";
     
     private static final Repository INSTANCE = new Repository();
     private final File folder;
-    private Data data;
+    private Data data = new Data();
 
     private Repository() {
         folder = new File(System.getProperty("user.dir"), FOLDER_NAME);
@@ -111,21 +122,21 @@ public class Repository { //not synchronized.
         }
     }
 
-    public void load(LoadListener listener) {
-        data = new Data();
+    public Data load(LoadListener listener) {
         File[] scanFiles = folder.listFiles();
         for (File scanFile : scanFiles) {
             if (scanFile.isFile() && scanFile.getName().endsWith(FILE_EXTENSION)) {
                 try (var ois = new ObjectInputStream(new FileInputStream(scanFile))) {
                     data.addScan((Scan) ois.readObject());
                 } catch (FileNotFoundException e) {
-                    listener.onLoadException(e, scanFile.getName());
+                    listener.onLoadError(new Error(scanFile.getName(), e));
                 } catch (IOException | ClassNotFoundException e) {
-                    listener.onLoadException(e, scanFile.getName());
+                    listener.onLoadError(new Error(scanFile.getName(), e));
                 }
             }
         }
         listener.onLoaded(data);
+        return data;
     }
 
     public void addScan(Scan scan, SaveListener listener){
@@ -142,9 +153,9 @@ public class Repository { //not synchronized.
             listener.onSaved(scan);
             return true;
         } catch (FileNotFoundException e) {
-            listener.onSaveException(e, scan.getName());
+            listener.onSaveError(new Error(scan.getName(), e));
         } catch (IOException e) {
-            listener.onSaveException(e, scan.getName());
+            listener.onSaveError(new Error(scan.getName(), e));
         }
         return false;
     }
@@ -161,8 +172,9 @@ public class Repository { //not synchronized.
         Scan newScan = new Scan(newName, scan);
         File newScanFile = createScanFile(newScan.getFilename());
         
-        if(!newScanFile.isFile() && saveScan(newScan, saveListener)){
-            deleteScan(scan); //delete old only if saved.
+        if(!newScanFile.isFile() && saveScan(newScan, saveListener)){  //add new and delete old only if saved.
+            deleteScan(scan);
+            data.addScan(newScan); //FIX: newScan being deleted along old if added before. Why? They should not have the same hashcode.
             return newScan;
         }
         return null;
