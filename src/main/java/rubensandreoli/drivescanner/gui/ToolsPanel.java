@@ -18,38 +18,41 @@ package rubensandreoli.drivescanner.gui;
 
 import java.awt.event.ItemEvent;
 import java.io.File;
-import rubensandreoli.drivescanner.gui.support.ActionEvent;
 import rubensandreoli.drivescanner.gui.support.StringFormatter;
 import rubensandreoli.drivescanner.io.Scan;
-import rubensandreoli.drivescanner.gui.support.ActionEventListener;
 
 public class ToolsPanel extends javax.swing.JPanel {
 
-    private ActionEventListener listener;
+    //<editor-fold defaultstate="collapsed" desc="LISTENER">
+    public static interface Listener{
+        void onDriveChange(File drive);
+        void onScan();
+        void onUpdateScan();
+        void onStop();
+        void onDeleteScan();
+        void onRenameScan();
+    }
+    //</editor-fold>
+    
+    private Listener listener; //listener cannot be null when action is performed.
     
     public ToolsPanel() {
         initComponents();
         
-        btnScan.addActionListener(e -> fireAction(ActionEvent.SCAN));
-        btnRename.addActionListener(e -> fireAction(ActionEvent.RENAME));
-        btnDelete.addActionListener(e -> fireAction(ActionEvent.DELETE));
-        btnUpdate.addActionListener(e -> fireAction(ActionEvent.UPDATE));
-        btnStop.addActionListener(e -> fireAction(ActionEvent.STOP));
+        btnScan.addActionListener(e -> listener.onScan());
+        btnRename.addActionListener(e -> listener.onRenameScan());
+        btnDelete.addActionListener(e -> listener.onDeleteScan());
+        btnUpdate.addActionListener(e -> listener.onUpdateScan());
+        btnStop.addActionListener(e -> listener.onStop());
         cmbDrives.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
-                fireAction(ActionEvent.SELECT_DRIVE);
+                listener.onDriveChange((File) cmbDrives.getSelectedItem());
             }
         });
     }
 
-    void setListener(ActionEventListener listener) {
+    void setListener(Listener listener) {
         this.listener = listener;
-    }
-        
-    private void fireAction(ActionEvent e){
-        if (listener != null) {
-            listener.eventOccurred(e);
-        }
     }
     
     void addDrives(File[] drives) {

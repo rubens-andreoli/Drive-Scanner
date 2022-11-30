@@ -24,17 +24,18 @@ import java.util.Objects;
 
 public class Folder implements Serializable, Comparable<Folder> {
 
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 3L;
 
     public static enum State implements Serializable{
         UNCHANGED, DELETED, INCREASED, DECREASED
     };
 
     private final File file;
-    private long size;
+    private long originalSize, currentSize;
     private State state;
     private boolean calculated = false;
     private Map<String, Long> files = new HashMap<>(); //ignored files' order for performance reasons.
+//    private boolean filesChanged = false;
 
     public Folder(File file) {
         this.file = file;
@@ -46,7 +47,10 @@ public class Folder implements Serializable, Comparable<Folder> {
     }
     
     void setFiles(Map<String, Long> files){
-        this.files = files;
+//        if(!this.files.keySet().equals(files.keySet())){
+//            filesChanged = true;
+//        }
+        this.files = files;      
         calculated = false;
     }
     
@@ -57,14 +61,19 @@ public class Folder implements Serializable, Comparable<Folder> {
         }
         if(state == null){ //just created.
             state = State.UNCHANGED;
-            this.size = tempSize;
+            originalSize = currentSize = tempSize;
         }else{ //updating.
-            if (tempSize == this.size) {
-                state = State.UNCHANGED;
+            if (tempSize == this.currentSize) {
+//                if(!filesChanged)
+                    state = State.UNCHANGED;
+//                else{
+//                    state = State.CHANGED;
+//                    filesChanged = false;
+//                }
             }else{
-                if (tempSize > this.size) state = State.INCREASED;
+                if (tempSize > this.currentSize) state = State.INCREASED;
                 else state = State.DECREASED;
-                this.size = tempSize;
+                this.currentSize = tempSize;
             }
         }
         calculated = true;
@@ -73,7 +82,7 @@ public class Folder implements Serializable, Comparable<Folder> {
     void setDeleted(){ //if folder is found again, calculateSize() will remove deleted state.
         state = State.DELETED;
         files.clear();
-        size = 0;
+        currentSize = 0;
         calculated = true;
     }
 
@@ -81,9 +90,14 @@ public class Folder implements Serializable, Comparable<Folder> {
         return file;
     }
 
-    public long getSize() {
+    public long getCurrentSize() {
         if(!calculated) calculateSize();
-        return size;
+        return currentSize;
+    }
+    
+    public long getOriginalSize(){
+        if(!calculated) calculateSize();
+        return originalSize;
     }
     
     public int getTotalFiles(){

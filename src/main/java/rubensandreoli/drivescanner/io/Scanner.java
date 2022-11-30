@@ -39,10 +39,18 @@ public class Scanner {
     }
  
     public Scan scan(String name, File drive, Set<Folder> oldFolders) {
-        Set<Folder> newFolders = new LinkedHashSet<>();
+        Set<Folder> newFolders = getEmptyFolderSet();
         this.folderCrawler(new Folder(drive), newFolders, oldFolders);
         if(handler.isInterrupted()) return null;
         return new Scan(name, drive, newFolders);
+    }
+    
+    public static File[] getRoots(){
+        return File.listRoots();
+    }
+    
+    public static Set<Folder> getEmptyFolderSet(){
+        return new LinkedHashSet<>();
     }
 
     //22957; 22352; 30700; 23713; 24975
@@ -74,8 +82,8 @@ public class Scanner {
     }
 
     public void update(Scan scan) { //TODO: try to improve performance.
-        final Set<Folder> folders = scan.getFolders();
-        for (Folder folder : folders) {
+        Map<Folder, Map<String, Long>> cache = new HashMap<>();
+        for (Folder folder : scan.getFolders()) {
             if(handler.isInterrupted()) return;
             handler.setStatus(folder.toString());
             File folderFile = folder.getFile();
@@ -93,16 +101,16 @@ public class Scanner {
                         }
                     }
                 }
-                folder.setFiles(files);
-                folder.calculateSize();
+                cache.put(folder, files);
             }
-            
+        }
+        //cannot be interrupted after this point.
+        for (Map.Entry<Folder, Map<String, Long>> entry : cache.entrySet()) {
+            Folder folder = entry.getKey();
+            folder.setFiles(entry.getValue()); 
+            folder.calculateSize();
         }
         scan.setUpdated(new Date());
-    }
-        
-    public static File[] getRoots(){
-        return File.listRoots();
     }
 
 }

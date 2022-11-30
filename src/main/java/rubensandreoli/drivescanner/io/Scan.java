@@ -38,11 +38,11 @@ public class Scan implements Serializable, Comparable<Scan> {
     private Date updatedDate;
     private long updatedSize;
 
-    public Scan(Scan scan){
+    public Scan(Scan scan){ //shallow copy.
         this(scan.name, scan);
     }
-    
-    public Scan(String name, Scan scan){
+
+    public Scan(String name, Scan scan){ //shallow copy.
         this(name, scan.drive, scan.folders, scan.date, scan.size);
         if(scan.isUpdated()){
             this.updatedDate = scan.updatedDate;
@@ -63,14 +63,14 @@ public class Scan implements Serializable, Comparable<Scan> {
         this.size = size;
     }
 
-   private static long calculateSize(Set<Folder> folders){
+    private static long calculateSize(Set<Folder> folders){
         long scanSize = 0;
         for (Folder subfolder : folders) {
-            scanSize += subfolder.getSize();
+            scanSize += subfolder.getCurrentSize();
         }
         return scanSize;
     }
-
+   
     static String createFilename(File drive, String name){
         String rootPath = drive.getPath(); 
         String rootLetter = rootPath.substring(0, rootPath.length()-2).toLowerCase();
@@ -86,10 +86,25 @@ public class Scan implements Serializable, Comparable<Scan> {
     void merge(Collection<Scan> scans){
         for (Scan s : scans) {
             folders.addAll(s.getFolders());
-            size += s.size;
+            if(s.isUpdated()){
+                size += s.updatedSize;
+            }else{
+                size += s.size;
+            }
         }
-        updatedDate = null;
+        updatedDate = null; //reset updated status; folders' updated information is kept.
         updatedSize = 0;
+    }
+    
+    void deleteFolders(Collection<Folder> folders){
+        for (Folder folder : folders) {
+            if(this.folders.remove(folder)){
+                if(isUpdated()){
+                    updatedSize -= folder.getCurrentSize();
+                }
+                size -= folder.getOriginalSize();
+            }
+        }
     }
 
     public File getDrive() {
@@ -143,7 +158,13 @@ public class Scan implements Serializable, Comparable<Scan> {
     public boolean isUpdated(){
         return updatedDate != null;
     }
-
+    
+    Scan getCopy(){ //semi-deep copy (each folder is still the same).
+        Set<Folder> foldersCopy = Scanner.getEmptyFolderSet();
+        foldersCopy.addAll(folders);
+        return new Scan(name, drive, foldersCopy, date, size);
+    }
+    
     @Override
     public int hashCode() {
         return 31 + drive.hashCode() + name.hashCode();
@@ -167,5 +188,5 @@ public class Scan implements Serializable, Comparable<Scan> {
     public String toString() {
         return name;
     }
-    
+
 }

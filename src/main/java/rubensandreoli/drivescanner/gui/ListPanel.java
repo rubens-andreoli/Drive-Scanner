@@ -16,11 +16,11 @@
  */
 package rubensandreoli.drivescanner.gui;
 
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.Collection;
 import java.util.List;
 import javax.swing.DefaultListModel;
-import rubensandreoli.drivescanner.gui.support.ActionEvent;
-import rubensandreoli.drivescanner.gui.support.ActionEventListener;
 import rubensandreoli.drivescanner.io.Scan;
 
 public class ListPanel extends javax.swing.JPanel {
@@ -34,7 +34,14 @@ public class ListPanel extends javax.swing.JPanel {
     }
     //</editor-fold>
     
-    private ActionEventListener listener;
+    //<editor-fold defaultstate="collapsed" desc="LISTENER">
+    public static interface Listener{
+        void onSelectScan(Scan scan);
+        void onDeleteScan(Collection<Scan> scans);
+    }
+    //</editor-fold>
+    
+    private Listener listener;
     private final ListModel lstScansModel = new ListModel();
     
     public ListPanel() {
@@ -42,21 +49,24 @@ public class ListPanel extends javax.swing.JPanel {
         
         lstScans.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()){
-                if(!isMultipleSelected() && lstScans.getSelectedValue() != null){
-                    fireAction(ActionEvent.SELECT_SCAN); //fire if only one is selected.
+                if(!isMultipleSelected() && getSelectedScan() != null){
+                    listener.onSelectScan(getSelectedScan());
+                }
+            }
+        });
+        
+        lstScans.addKeyListener(new KeyAdapter(){
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if(e.getKeyCode() == KeyEvent.VK_DELETE && !lstScans.isSelectionEmpty()){
+                    listener.onDeleteScan(getSelectedScans());
                 }
             }
         });
     }
     
-    void setListener(ActionEventListener listener) {
+    void setListener(Listener listener) {
         this.listener = listener;
-    }
-
-    private void fireAction(ActionEvent e){
-        if (listener != null) {
-            listener.eventOccurred(e);
-        }
     }
         
     Scan getSelectedScan() {

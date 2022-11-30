@@ -69,9 +69,7 @@ public class Repository { //not synchronized.
         
         public boolean isEmpty(File drive){
             if(drive == null) return scans.isEmpty();
-            else{
-                return !scans.containsKey(drive);
-            }
+            else return !scans.containsKey(drive);
         }
 
     }
@@ -190,11 +188,11 @@ public class Repository { //not synchronized.
         return failed;
     }
     
-    public Scan renameScan(Scan scan, String newName, SaveListener saveListener){
+    public Scan renameScan(Scan scan, String newName, SaveListener listener){
         Scan newScan = new Scan(newName, scan);
         File newScanFile = createScanFile(newScan.getFilename());
         
-        if(!newScanFile.isFile() && saveScan(newScan, saveListener)){
+        if(!newScanFile.isFile() && saveScan(newScan, listener)){
             deleteScan(scan, true); //delete must be performed first; treeSet won't allow scans with the same date.
             data.addScan(newScan);
             return newScan;
@@ -216,6 +214,18 @@ public class Repository { //not synchronized.
         
         listener.onMerged(mergedScan);
         return mergedScan;
+    }
+    
+    public Scan deleteScanFolders(Scan scan, Collection<Folder> folders, SaveListener listener){
+        Scan newScan = scan.getCopy();
+        newScan.deleteFolders(folders);
+        
+        if(saveScan(newScan, listener)){
+            data.deleteScan(scan); //delete must be performed first; set won't allow scans with the same hash.
+            data.addScan(newScan);
+            return newScan;
+        }
+        return null;
     }
 
     public boolean existsScan(File drive, String name){
