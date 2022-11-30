@@ -295,8 +295,8 @@ public class AboutDialog extends javax.swing.JDialog {
         c.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                final String os = System.getProperty("os.name").toLowerCase();
-                final Runtime runtime = Runtime.getRuntime();
+                String os = System.getProperty("os.name").toLowerCase();
+                Runtime runtime = Runtime.getRuntime();
                 IOException exception = null;
 
                 if(os.contains("win")){

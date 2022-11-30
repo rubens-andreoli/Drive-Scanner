@@ -15,11 +15,23 @@
         </MenuItem>
         <Component class="javax.swing.JPopupMenu$Separator" name="sprPopup">
         </Component>
-        <MenuItem class="javax.swing.JMenuItem" name="mniMove">
+        <Menu class="javax.swing.JMenu" name="mnuMove">
           <Properties>
             <Property name="text" type="java.lang.String" value="Move"/>
           </Properties>
-        </MenuItem>
+          <SubComponents>
+            <MenuItem class="javax.swing.JMenuItem" name="mniMoveNew">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="New"/>
+              </Properties>
+            </MenuItem>
+            <MenuItem class="javax.swing.JMenuItem" name="mniMoveInto">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Into..."/>
+              </Properties>
+            </MenuItem>
+          </SubComponents>
+        </Menu>
         <MenuItem class="javax.swing.JMenuItem" name="mniDelete">
           <Properties>
             <Property name="text" type="java.lang.String" value="Delete"/>

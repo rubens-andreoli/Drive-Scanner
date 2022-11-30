@@ -40,7 +40,7 @@ public class Folder implements Serializable, Comparable<Folder> {
     public Folder(File file) {
         this.file = file;
     }
-    
+        
     void addFile(String name, long size){
         files.put(name, size);
         calculated = false;
@@ -84,6 +84,11 @@ public class Folder implements Serializable, Comparable<Folder> {
         files.clear();
         currentSize = 0;
         calculated = true;
+    }
+    
+    void resetState(){
+        state = State.UNCHANGED;
+        originalSize = currentSize;
     }
 
     public File getFile() {

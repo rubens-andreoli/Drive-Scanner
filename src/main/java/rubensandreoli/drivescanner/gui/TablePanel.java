@@ -173,7 +173,8 @@ public class TablePanel extends javax.swing.JPanel {
     //<editor-fold defaultstate="collapsed" desc="LISTENER">
     public static interface Listener{
         void onDeleteFolders(Collection<Folder> folders);
-        void onMoveFolders(Collection<Folder> folders);
+        void onMoveFoldersNew(Collection<Folder> folders);
+        void onMoveFoldersInto(Collection<Folder> folders);
     }
     //</editor-fold>
     
@@ -186,7 +187,8 @@ public class TablePanel extends javax.swing.JPanel {
         //TODO: remove open from popupMenu if not supported; don't add listener.
         
         mniOpen.addActionListener(e -> openSelectedFolder());
-        mniMove.addActionListener(e -> listener.onMoveFolders(getSelectedFolders()));
+        mniMoveNew.addActionListener(e -> listener.onMoveFoldersNew(getSelectedFolders()));
+        mniMoveInto.addActionListener(e -> listener.onMoveFoldersInto(getSelectedFolders()));
         mniDelete.addActionListener(e -> listener.onDeleteFolders(getSelectedFolders()));
         
         tblFolders.addKeyListener(new KeyAdapter(){
@@ -278,7 +280,9 @@ public class TablePanel extends javax.swing.JPanel {
 
     private void setPopupItemsEnabled(boolean enabled){
         mniOpen.setEnabled(enabled);
-        mniMove.setEnabled(enabled);
+        mnuMove.setEnabled(enabled);
+//        mniMoveInto.setEnabled(enabled);
+//        mniMoveNew.setEnabled(enabled);
         mniDelete.setEnabled(enabled);
     }
     
@@ -301,7 +305,9 @@ public class TablePanel extends javax.swing.JPanel {
         popupMenu = new javax.swing.JPopupMenu();
         mniOpen = new javax.swing.JMenuItem();
         sprPopup = new javax.swing.JPopupMenu.Separator();
-        mniMove = new javax.swing.JMenuItem();
+        mnuMove = new javax.swing.JMenu();
+        mniMoveNew = new javax.swing.JMenuItem();
+        mniMoveInto = new javax.swing.JMenuItem();
         mniDelete = new javax.swing.JMenuItem();
         scrFolders = new javax.swing.JScrollPane();
         tblFolders = new javax.swing.JTable(tblFoldersModel);
@@ -316,8 +322,15 @@ public class TablePanel extends javax.swing.JPanel {
         popupMenu.add(mniOpen);
         popupMenu.add(sprPopup);
 
-        mniMove.setText("Move");
-        popupMenu.add(mniMove);
+        mnuMove.setText("Move");
+
+        mniMoveNew.setText("New");
+        mnuMove.add(mniMoveNew);
+
+        mniMoveInto.setText("Into...");
+        mnuMove.add(mniMoveInto);
+
+        popupMenu.add(mnuMove);
 
         mniDelete.setText("Delete");
         popupMenu.add(mniDelete);
@@ -336,8 +349,10 @@ public class TablePanel extends javax.swing.JPanel {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JMenuItem mniDelete;
-    private javax.swing.JMenuItem mniMove;
+    private javax.swing.JMenuItem mniMoveInto;
+    private javax.swing.JMenuItem mniMoveNew;
     private javax.swing.JMenuItem mniOpen;
+    private javax.swing.JMenu mnuMove;
     private javax.swing.JPopupMenu popupMenu;
     private javax.swing.JScrollPane scrFolders;
     private javax.swing.JPopupMenu.Separator sprPopup;

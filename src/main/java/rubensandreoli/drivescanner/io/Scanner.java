@@ -19,7 +19,6 @@ package rubensandreoli.drivescanner.io;
 import java.io.File;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,7 +38,7 @@ public class Scanner {
     }
  
     public Scan scan(String name, File drive, Set<Folder> oldFolders) {
-        Set<Folder> newFolders = getEmptyFolderSet();
+        Set<Folder> newFolders = Scan.getEmptyFolderSet();
         this.folderCrawler(new Folder(drive), newFolders, oldFolders);
         if(handler.isInterrupted()) return null;
         return new Scan(name, drive, newFolders);
@@ -47,10 +46,6 @@ public class Scanner {
     
     public static File[] getRoots(){
         return File.listRoots();
-    }
-    
-    public static Set<Folder> getEmptyFolderSet(){
-        return new LinkedHashSet<>();
     }
 
     //22957; 22352; 30700; 23713; 24975

@@ -25,15 +25,6 @@ import rubensandreoli.drivescanner.io.Scan;
 
 public class ListPanel extends javax.swing.JPanel {
 
-    //<editor-fold defaultstate="collapsed" desc="LIST MODEL">
-    private class ListModel extends DefaultListModel<Scan>{
-        public void update(Scan scan){
-            final int index = this.indexOf(scan);
-            if(index > -1) fireContentsChanged(this, index, index);
-        }
-    }
-    //</editor-fold>
-    
     //<editor-fold defaultstate="collapsed" desc="LISTENER">
     public static interface Listener{
         void onSelectScan(Scan scan);
@@ -42,7 +33,7 @@ public class ListPanel extends javax.swing.JPanel {
     //</editor-fold>
     
     private Listener listener;
-    private final ListModel lstScansModel = new ListModel();
+    private final DefaultListModel<Scan> lstScansModel = new DefaultListModel<>();
     
     public ListPanel() {
         initComponents();
@@ -94,9 +85,9 @@ public class ListPanel extends javax.swing.JPanel {
         lstScans.setSelectedValue(scan, true);
     }
     
-    void addScan(Scan scan){
+    void addScan(Scan scan, boolean select){
         lstScansModel.addElement(scan);
-        setSelectedScan(scan);
+        if(select) setSelectedScan(scan);
     }
     
     void removeScan(Scan scan){
@@ -115,12 +106,12 @@ public class ListPanel extends javax.swing.JPanel {
         lstScansModel.clear();
     }
 
-    void replaceScan(Scan oldScan, Scan newScan){
+    void replaceScan(Scan oldScan, Scan newScan, boolean select){
         lstScans.setValueIsAdjusting(true);
-        final int index = lstScansModel.indexOf(oldScan);
+        int index = lstScansModel.indexOf(oldScan);
         lstScansModel.removeElement(oldScan);
         lstScansModel.insertElementAt(newScan, index);
-        lstScans.setSelectedIndex(index);
+        if(select) lstScans.setSelectedIndex(index);
         lstScans.setValueIsAdjusting(false);
     }
     

@@ -129,7 +129,8 @@ public class MainFrame extends javax.swing.JFrame {
         });
         tablePanel.setListener(new TablePanel.Listener() {
             public @Override void onDeleteFolders(Collection<Folder> folders) {deleteFolders(folders);}
-            public @Override void onMoveFolders(Collection<Folder> folders) {moveFolders(folders);}
+            public @Override void onMoveFoldersNew(Collection<Folder> folders) {moveFoldersNew(folders);}
+            public @Override void onMoveFoldersInto(Collection<Folder> folders) {moveFoldersInto(folders);}
         });
         
         toolsPanel.addDrives(Scanner.getRoots());
@@ -205,15 +206,15 @@ public class MainFrame extends javax.swing.JFrame {
                 if(newScan == null) return; //exception or cancelled.
                 if(!newScan.isEmpty()){
                     //TODO: save scan in new thread. Or the same as scan but return scan and only affect this frame on done.
-                    Repository.getInstance().addScan(newScan, new Repository.SaveListener(){
+                    Repository.getInstance().addScan(newScan, new Repository.WorkListener(){
                         @Override
-                        public void onSaved(Scan scan) {
+                        public void onDone(Scan scan) {
                             currentScan = scan;
-                            listPanel.addScan(currentScan);
+                            listPanel.addScan(currentScan, true);
                         }
 
                         @Override
-                        public void onSaveError(Repository.Error e) {
+                        public void onError(Repository.Error e) {
                             showSaveException(e.cause, e.message);
                         }
                     });
@@ -342,15 +343,14 @@ public class MainFrame extends javax.swing.JFrame {
         if(scanNewName == null) return;
         
         //TODO: rename scan in new thread.
-        Repository.getInstance().renameScan(currentScan, scanNewName, new Repository.SaveListener() {
+        Repository.getInstance().renameScan(currentScan, scanNewName, new Repository.WorkListener() {
             @Override
-            public void onSaved(Scan scan) {
-                listPanel.replaceScan(currentScan, scan);
-                currentScan = scan;
+            public void onDone(Scan scan) {
+                listPanel.replaceScan(currentScan, scan, true);
             }
 
             @Override
-            public void onSaveError(Repository.Error e) {
+            public void onError(Repository.Error e) {
                 showSaveException(e.cause, e.message);
             }
         });
@@ -366,17 +366,15 @@ public class MainFrame extends javax.swing.JFrame {
             if(confirmationAlert(actionName, "Are you sure you want to merge all the selected scans?"
                     + "\nAll scans will be merged into the first one selected: [" + currentScan +"]")){
                 Collection<Scan> selectedScans = listPanel.getSelectedScans();
-                Repository.getInstance().mergeScans(selectedScans, currentScan, new Repository.MergeListener() {
+                Repository.getInstance().mergeScans(selectedScans, currentScan, new Repository.WorkListener() {
                     @Override
-                    public void onMerged(Scan scan) {
+                    public void onDone(Scan scan) {
                         listPanel.removeScans(selectedScans);
-                        listPanel.replaceScan(currentScan, scan);
-                        listPanel.setSelectedScan(scan);
-                        currentScan = scan;
+                        listPanel.replaceScan(currentScan, scan, true);
                     }
 
                     @Override
-                    public void onMergeError(Repository.Error e) {
+                    public void onError(Repository.Error e) {
                         showSaveException(e.cause, e.message);
                     }
                 });
@@ -390,26 +388,63 @@ public class MainFrame extends javax.swing.JFrame {
         
         if(confirmationAlert(actionName, "Are you sure you want to delete the selected folder(s) from this scan?")){ //TODO: show list of selected folders in a jlist.
             //TODO: delete scan's folders in new thread.
-            Repository.getInstance().deleteScanFolders(currentScan, folders, new Repository.SaveListener() {
+            Repository.getInstance().deleteScanFolders(currentScan, folders, new Repository.WorkListener() {
             @Override
-            public void onSaved(Scan scan) {
-                listPanel.replaceScan(currentScan, scan);
-                currentScan = scan;
+            public void onDone(Scan scan) {
+                listPanel.replaceScan(currentScan, scan, true);
             }
 
             @Override
-            public void onSaveError(Repository.Error e) {
+            public void onError(Repository.Error e) {
                 showSaveException(e.cause, e.message);
             }
         });
         }
     }
 
-    private void moveFolders(Collection<Folder> folders) { //TODO: implement.
+    private void moveFoldersInto(Collection<Folder> folders) {
         final String actionName = "Move Folders";
         if(showLocked(actionName)) return;
         
-        JOptionPane.showMessageDialog(this, "This operation has not been implemented yet.", actionName, JOptionPane.WARNING_MESSAGE);
+        Scan selectedScan = SelectionDialog.showSelectionDialog(this, data.getDriveScans(toolsPanel.getSelectedDrive()));
+        if(selectedScan != null){
+            Repository.getInstance().moveScanFolders(currentScan, selectedScan, folders, new Repository.MoveListener() {
+                @Override
+                public void onMoved(Scan scanFrom, Scan scanTo) {
+                    listPanel.replaceScan(selectedScan, scanTo, false); //without selection must be first.
+                    listPanel.replaceScan(currentScan, scanFrom, true);
+                }
+                
+                @Override
+                public void onMoveError(Repository.Error e) {
+                    showSaveException(e.cause, e.message);
+                }
+            });
+        }
+    }
+    
+    private void moveFoldersNew(Collection<Folder> folders){
+        final String actionName = "Move Folders";
+        if(showLocked(actionName)) return;
+        
+        String scanName = createName(
+                "Enter a name for your scan:", 
+                actionName, 
+                "Choose another scan name, this one has already been used:"
+        );
+        if(scanName == null) return;
+        Repository.getInstance().moveScanFolders(currentScan, scanName, toolsPanel.getSelectedDrive(), folders, new Repository.MoveListener() {
+            @Override
+            public void onMoved(Scan scanFrom, Scan scanTo) {
+                listPanel.addScan(scanTo, false); //without selection must be first.
+                listPanel.replaceScan(currentScan, scanFrom, true);
+            }
+
+            @Override
+            public void onMoveError(Repository.Error e) {
+                showSaveException(e.cause, e.message);
+            }
+        });
     }
         
     private void exit(){

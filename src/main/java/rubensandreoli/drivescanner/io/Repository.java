@@ -48,6 +48,11 @@ public class Repository { //not synchronized.
         void deleteScan(Scan scan) {
             scans.get(scan.getDrive()).remove(scan);
         }
+        
+        void replaceScan(Scan oldScan, Scan newScan){
+            deleteScan(oldScan); //delete must be performed first; set won't allow scans with the same hash.
+            addScan(newScan);
+        }
 
         public Collection<Scan> getDriveScans(File drive){
             if(!scans.containsKey(drive)){
@@ -57,7 +62,7 @@ public class Repository { //not synchronized.
         }
 
         public Set<Folder> getDriveFolders(File drive){
-            final Set<Folder> value = new HashSet<>();
+            Set<Folder> value = new HashSet<>();
             if(!scans.containsKey(drive)){
                 return value;
             }
@@ -94,15 +99,15 @@ public class Repository { //not synchronized.
     }
 
     @FunctionalInterface
-    public static interface SaveListener{
-        default void onSaved(Scan scan){};
-        void onSaveError(Error e);
+    public static interface WorkListener{
+        default void onDone(Scan scan){};
+        void onError(Error e);
     }
-    
+
     @FunctionalInterface
-    public static interface MergeListener{
-        default void onMerged(Scan scan){};
-        void onMergeError(Error e);
+    public static interface MoveListener{
+        default void onMoved(Scan scanFrom, Scan scanTo){};
+        void onMoveError(Error e);
     }
     //</editor-fold>
 
@@ -138,23 +143,23 @@ public class Repository { //not synchronized.
         return data;
     }
 
-    public void addScan(Scan scan, SaveListener listener){
-        if(saveScan(scan, listener)) data.addScan(scan); //add only if saved.
+    public void addScan(Scan scan, WorkListener listener){
+        if(saveScan(scan, listener)) data.addScan(scan); //add to memory only if saved.
     }
     
-    public void updateScan(Scan scan, SaveListener listener){
-        saveScan(scan, listener); //TODO: what if updating fails? reload old scan?
+    public void updateScan(Scan scan, WorkListener listener){
+        saveScan(scan, listener); //TODO: changes added to memory even before saving. Scanner could return a temporary scan instead. 
     }
     
-    private boolean saveScan(Scan scan, SaveListener listener) {
+    private boolean saveScan(Scan scan, WorkListener listener) {
         try (var oos = new ObjectOutputStream(new FileOutputStream(createScanFile(scan.getFilename())))) {
             oos.writeObject(scan);
-            listener.onSaved(scan);
+            listener.onDone(scan);
             return true;
         } catch (FileNotFoundException e) {
-            listener.onSaveError(new Error(scan.getName(), e));
+            listener.onError(new Error(scan.getName(), e));
         } catch (IOException e) {
-            listener.onSaveError(new Error(scan.getName(), e));
+            listener.onError(new Error(scan.getName(), e));
         }
         return false;
     }
@@ -167,7 +172,7 @@ public class Repository { //not synchronized.
         return deleteScan(scan, null);
     }
     
-    private boolean deleteScan(Scan scan, Boolean remove){ //a null remove will remove from memory only if succeeded.
+    private boolean deleteScan(Scan scan, Boolean remove){ //a null 'remove' will remove data from memory only if succeeded.
         File scanFile = createScanFile(scan.getFilename());
         boolean succeeded = (scanFile.isFile() && scanFile.delete());
         if((remove == null && succeeded) || (remove != null && remove)){
@@ -188,7 +193,7 @@ public class Repository { //not synchronized.
         return failed;
     }
     
-    public Scan renameScan(Scan scan, String newName, SaveListener listener){
+    public Scan renameScan(Scan scan, String newName, WorkListener listener){
         Scan newScan = new Scan(newName, scan);
         File newScanFile = createScanFile(newScan.getFilename());
         
@@ -200,33 +205,54 @@ public class Repository { //not synchronized.
         return null;
     }
     
-    public Scan mergeScans(Collection<Scan> scans, Scan into, MergeListener listener){
+    public Scan mergeScans(Collection<Scan> scans, Scan into, WorkListener listener){
         Scan mergedScan = new Scan(into);
-        scans.remove(into); //remove base if passed along with the list; as it is the case.
+        scans.remove(into); //removes base if passed along with the list; as it is the case.
         mergedScan.merge(scans);
         
-        if(!saveScan(mergedScan, e -> listener.onMergeError(e))){
+        if(!saveScan(mergedScan, e -> listener.onError(e))){
             return null;
         }
         
         deleteScans(scans, true);
         data.addScan(mergedScan);
         
-        listener.onMerged(mergedScan);
+        listener.onDone(mergedScan);
         return mergedScan;
     }
     
-    public Scan deleteScanFolders(Scan scan, Collection<Folder> folders, SaveListener listener){
+    public Scan deleteScanFolders(Scan scan, Collection<Folder> folders, WorkListener listener){
         Scan newScan = scan.getCopy();
-        newScan.deleteFolders(folders);
+        newScan.removeFolders(folders);
         
         if(saveScan(newScan, listener)){
-            data.deleteScan(scan); //delete must be performed first; set won't allow scans with the same hash.
-            data.addScan(newScan);
+            data.replaceScan(scan, newScan);
             return newScan;
         }
         return null;
     }
+    
+    public Scan[] moveScanFolders(Scan scanFrom, Scan scanTo, Collection<Folder> folders, MoveListener listener){
+        Scan scanToCopy = scanTo.getCopy();
+        Scan scanFromCopy = scanFrom.getCopy();
+        
+        scanToCopy.addFolders(folders);
+        scanFromCopy.removeFolders(folders);
+        
+        if(saveScan(scanToCopy, e -> listener.onMoveError(e)) && saveScan(scanFromCopy, e -> listener.onMoveError(e))){ //TODO: what to do if only the scanTo is saved?
+            data.replaceScan(scanTo, scanToCopy);
+            data.replaceScan(scanFrom, scanFromCopy);
+            listener.onMoved(scanFromCopy, scanToCopy);
+            return new Scan[]{scanFromCopy, scanToCopy};
+        }
+        return null;
+    }
+    
+    public void moveScanFolders(Scan scanFrom, String name, File drive, Collection<Folder> folders, MoveListener listener){
+        Scan scanTo = new Scan(name, drive, folders);
+        moveScanFolders(scanFrom, scanTo, folders, listener);
+    }
+    
 
     public boolean existsScan(File drive, String name){
         return createScanFile(Scan.createFilename(drive, name)).isFile();
