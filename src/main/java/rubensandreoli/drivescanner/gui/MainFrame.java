@@ -297,20 +297,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         }
     }
-    
-    private void deleteScan(Scan scan){ //should be called only from deleteScans().
-        if (Repository.getInstance().deleteScan(scan)) {
-            listPanel.removeScan(scan);
-            driveSelected();
-        } else {
-            JOptionPane.showMessageDialog(MainFrame.this,
-                    "Scan file not found. "
-                    + "Reopen the program to clear it from the list.",
-                    "Error: File Not Found",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
-    
+       
     private void deleteAllScans(){
         final String actionName = "Delete All";
         if(showLocked(actionName)) return;
@@ -392,6 +379,7 @@ public class MainFrame extends javax.swing.JFrame {
             @Override
             public void onDone(Scan scan) {
                 listPanel.replaceScan(currentScan, scan, true);
+                checkScanEmpty();
             }
 
             @Override
@@ -413,6 +401,7 @@ public class MainFrame extends javax.swing.JFrame {
                 public void onMoved(Scan scanFrom, Scan scanTo) {
                     listPanel.replaceScan(selectedScan, scanTo, false); //without selection must be first.
                     listPanel.replaceScan(currentScan, scanFrom, true);
+                    checkScanEmpty();
                 }
                 
                 @Override
@@ -438,6 +427,7 @@ public class MainFrame extends javax.swing.JFrame {
             public void onMoved(Scan scanFrom, Scan scanTo) {
                 listPanel.addScan(scanTo, false); //without selection must be first.
                 listPanel.replaceScan(currentScan, scanFrom, true);
+                checkScanEmpty();
             }
 
             @Override
@@ -507,6 +497,23 @@ public class MainFrame extends javax.swing.JFrame {
         mniDeleteAll.setEnabled(locked? locked : isSelectedDriveNotEmpty()); //if not locked, check if there is any scans to delete.
     }
     
+    private void deleteScan(Scan scan){ //helper method.
+        if (Repository.getInstance().deleteScan(scan)) {
+            listPanel.removeScan(scan);
+            driveSelected();
+        } else {
+            JOptionPane.showMessageDialog(MainFrame.this,
+                    "Scan file not found. "
+                    + "Reopen the program to clear it from the list.",
+                    "Error: File Not Found",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+        
+    private boolean isSelectedDriveNotEmpty(){
+        return !data.isEmpty(toolsPanel.getSelectedDrive());
+    }
+    
     private boolean showLocked(String action){
         if(locked){
             JOptionPane.showMessageDialog(this, 
@@ -516,9 +523,12 @@ public class MainFrame extends javax.swing.JFrame {
         }
         return locked;
     }
-        
-    private boolean isSelectedDriveNotEmpty(){
-        return !data.isEmpty(toolsPanel.getSelectedDrive());
+    
+    private void checkScanEmpty(){
+        if(currentScan.isEmpty() && confirmationAlert("Delete", "Due to being edited the selected scan is now empty."
+                + "\nDo you want to delete it?")){
+            deleteScan(currentScan);
+        }
     }
     
     private boolean confirmationAlert(String title, String msg){

@@ -194,7 +194,7 @@ public class TablePanel extends javax.swing.JPanel {
         tblFolders.addKeyListener(new KeyAdapter(){
             @Override
             public void keyPressed(KeyEvent e) {
-                if(e.getKeyCode() == KeyEvent.VK_DELETE && !isSelectionEmpty()){
+                if(e.getKeyCode() == KeyEvent.VK_DELETE && isSelectionNotEmpty()){
                     listener.onDeleteFolders(getSelectedFolders());
                 }
             }
@@ -208,7 +208,7 @@ public class TablePanel extends javax.swing.JPanel {
             
             @Override
             public void mousePressed(MouseEvent evt) {
-                if(!showPopupMenu(evt) && evt.getClickCount() == 2 && !isSelectionEmpty()){
+                if(!showPopupMenu(evt) && evt.getClickCount() == 2 && isSelectionNotEmpty()){
                     openSelectedFolder();
                 }
             }
@@ -219,7 +219,7 @@ public class TablePanel extends javax.swing.JPanel {
                         if (rowAtPoint > -1) {
                             tblFolders.setRowSelectionInterval(rowAtPoint, rowAtPoint);
                         }*/
-                    setPopupItemsEnabled(!isSelectionEmpty());
+                    setPopupItemsEnabled(isSelectionNotEmpty());
                     popupMenu.show(tblFolders, evt.getX(), evt.getY());
                     return true;
                 }
@@ -228,8 +228,8 @@ public class TablePanel extends javax.swing.JPanel {
         });
     }
     
-    private boolean isSelectionEmpty(){
-        return (tblFolders.getSelectedRowCount() == 0);
+    private boolean isSelectionNotEmpty(){
+        return tblFolders.getSelectedRowCount() > 0;
     }
     
     private void openSelectedFolder(){
