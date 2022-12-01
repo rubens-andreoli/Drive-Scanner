@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InvalidClassException;
 import java.util.Collection;
 import javax.swing.JOptionPane;
+import rubensandreoli.drivescanner.gui.AboutDialog;
 import rubensandreoli.drivescanner.gui.ListDialogPanel;
 import rubensandreoli.drivescanner.io.Repository;
 import rubensandreoli.drivescanner.io.Scan;
@@ -30,9 +31,16 @@ import rubensandreoli.drivescanner.io.Scan;
 public class DialogFactory {
 
     private final Frame parent;
+    private final AboutDialog aboutDialog;
 
     public DialogFactory(Frame parent) {
         this.parent = parent;
+        aboutDialog = new AboutDialog(parent, new AboutDialog.ProgramInfo("Drive Scanner", null, "1.0.0", "2022"));
+        aboutDialog.addAtribution("Icons", "Freepik", "https://www.flaticon.com/authors/freepik");
+    }
+    
+    public void showAboutDialog(){
+        aboutDialog.setVisible(true);
     }
     
     public void showErrorDialog(String title, String msg){

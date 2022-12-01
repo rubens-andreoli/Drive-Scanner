@@ -19,11 +19,13 @@ package rubensandreoli.drivescanner.io;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
-public class Scan implements Serializable, Comparable<Scan> {
+public class Scan implements Serializable{
     private static final long serialVersionUID = 1L;
 
     private static final String FILENAME_DIVISOR = "-";
@@ -50,11 +52,7 @@ public class Scan implements Serializable, Comparable<Scan> {
             this.updatedSize = scan.updatedSize;
         }
     }
-    
-    public Scan(String name, File drive, Collection<Folder> folders){
-        this(name, drive, getFolderSet(folders));
-    }
-    
+
     public Scan(String name, File drive, Set<Folder> folders) {
         this(name, drive, folders, new Date(), calculateSize(folders));
     }
@@ -83,13 +81,17 @@ public class Scan implements Serializable, Comparable<Scan> {
         return rootLetter+FILENAME_DIVISOR+normalizedName;
     }
     
-    static Set<Folder> getEmptyFolderSet(){
-        return getFolderSet(null);
+    public static Set<Folder> getNewFolderSet(){
+        return new LinkedHashSet<>();
     }
     
-    static Set<Folder> getFolderSet(Collection<Folder> folders){
-        if(folders == null) return new LinkedHashSet<>();
-        return new LinkedHashSet<>(folders);
+    public static Collection<Scan> getNewScanCollection(){
+        return new TreeSet<>(new Comparator<Scan>() {
+            @Override
+            public int compare(Scan s1, Scan s2) {
+                return s1.date.compareTo(s2.date);
+            }
+        });
     }
 
     void setUpdated(Date updatedDate) {
@@ -110,7 +112,7 @@ public class Scan implements Serializable, Comparable<Scan> {
         updatedSize = 0;
     }
     
-    void removeFolders(Collection<Folder> folders){
+    void removeFolders(Set<Folder> folders){
         for (Folder folder : folders) {
             if(this.folders.remove(folder)){
                 if(isUpdated()){
@@ -121,7 +123,7 @@ public class Scan implements Serializable, Comparable<Scan> {
         }
     }
     
-    void addFolders(Collection<Folder> folders){
+    void addFolders(Set<Folder> folders){
         for (Folder folder : folders) {
             folder.resetState();
             if(this.folders.add(folder)){
@@ -185,14 +187,14 @@ public class Scan implements Serializable, Comparable<Scan> {
     }
     
     Scan getCopy(){ //semi-deep copy (each folder is still the same).
-        Set<Folder> foldersCopy = getEmptyFolderSet();
+        Set<Folder> foldersCopy = getNewFolderSet();
         foldersCopy.addAll(folders);
         return new Scan(name, drive, foldersCopy, date, size);
     }
     
     @Override
     public int hashCode() {
-        return 31 + drive.hashCode() + name.hashCode();
+        return 31*(31*drive.hashCode()) + name.hashCode();
     }
 
     @Override
@@ -202,11 +204,6 @@ public class Scan implements Serializable, Comparable<Scan> {
         if (getClass() != obj.getClass()) return false;
         Scan other = (Scan) obj;
         return drive.equals(other.drive) && name.equals(other.name);
-    }
-
-    @Override
-    public int compareTo(Scan other) {
-        return date.compareTo(other.date);
     }
 
     @Override

@@ -64,7 +64,7 @@ public class ListPanel extends javax.swing.JPanel {
         return lstScans.getSelectedValue();
     }
 
-    List<Scan> getSelectedScans(){
+    Collection<Scan> getSelectedScans(){
         return lstScans.getSelectedValuesList();
     }
     

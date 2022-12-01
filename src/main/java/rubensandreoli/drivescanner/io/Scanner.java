@@ -38,7 +38,7 @@ public class Scanner {
     }
  
     public Scan scan(String name, File drive, Set<Folder> oldFolders) {
-        Set<Folder> newFolders = Scan.getEmptyFolderSet();
+        Set<Folder> newFolders = Scan.getNewFolderSet();
         this.folderCrawler(new Folder(drive), newFolders, oldFolders);
         if(handler.isInterrupted()) return null;
         return new Scan(name, drive, newFolders);

@@ -278,6 +278,7 @@ public class AboutDialog extends javax.swing.JDialog {
             }
             btnClose.requestFocus();
         }
+        this.setLocationRelativeTo(this.getParent()); //super call on constructor not doing the job.
         super.setVisible(b);
     }
     

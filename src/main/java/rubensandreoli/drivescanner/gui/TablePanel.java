@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
@@ -172,9 +173,9 @@ public class TablePanel extends javax.swing.JPanel {
     
     //<editor-fold defaultstate="collapsed" desc="LISTENER">
     public static interface Listener{
-        void onDeleteFolders(Collection<Folder> folders);
-        void onMoveFoldersNew(Collection<Folder> folders);
-        void onMoveFoldersInto(Collection<Folder> folders);
+        void onDeleteFolders(Set<Folder> folders);
+        void onMoveFoldersNew(Set<Folder> folders);
+        void onMoveFoldersInto(Set<Folder> folders);
     }
     //</editor-fold>
     
@@ -266,8 +267,8 @@ public class TablePanel extends javax.swing.JPanel {
         this.listener = listener;
     }
     
-    private Collection<Folder> getSelectedFolders(){
-        Collection<Folder> folders = new HashSet<>();
+    private Set<Folder> getSelectedFolders(){
+        Set<Folder> folders = Scan.getNewFolderSet();
         for (int selectedRow : tblFolders.getSelectedRows()) {
             folders.add((Folder) tblFolders.getValueAt(selectedRow, 0));
         }

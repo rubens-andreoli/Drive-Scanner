@@ -115,7 +115,7 @@ public class Folder implements Serializable, Comparable<Folder> {
 
     @Override
     public int hashCode() {
-        return 55 + file.hashCode();
+        return 31 + file.hashCode();
     }
 
     @Override

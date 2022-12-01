@@ -25,23 +25,27 @@ import java.io.InvalidClassException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.function.Supplier;
 
 public class Repository { //not synchronized.
 
     //<editor-fold defaultstate="collapsed" desc="DATA">
     public class Data {
 
-        private final Map<File, Set<Scan>> scans = new HashMap<>();
+        private final Map<File, Collection<Scan>> scans = new HashMap<>();
 
+        /**
+         * @param scan if data already contains a scan with the same date, it won't be added.
+         */
         void addScan(Scan scan){
             File key = scan.getDrive();
             if(!scans.containsKey(key)){
-                scans.put(key, new TreeSet<>()); //scans with the same date won't be added.
+                scans.put(key, Scan.getNewScanCollection());
             }
             scans.get(key).add(scan);
         }
@@ -57,25 +61,24 @@ public class Repository { //not synchronized.
 
         public Collection<Scan> getDriveScans(File drive){
             if(!scans.containsKey(drive)){
-                return new HashSet<>();
+                return Collections.EMPTY_SET;
             }
             return scans.get(drive);
         }
 
-        public Set<Folder> getDriveFolders(File drive){
-            Set<Folder> value = new HashSet<>();
+        public Set<Folder> getDriveFolders(File drive){ 
             if(!scans.containsKey(drive)){
-                return value;
+                return Collections.EMPTY_SET;
             }
+            Set<Folder> value = new HashSet<>(); //used for reference when performing a new scan; return is only read and must be fast for contains.
             for (Scan scan : scans.get(drive)) {
                 value.addAll(scan.getFolders());
             }
             return value;
         }
         
-        public boolean isEmpty(File drive){
-            if(drive == null) return scans.isEmpty();
-            else return !scans.containsKey(drive);
+        public boolean isDriveEmpty(File drive){
+            return !scans.containsKey(drive);
         }
 
     }
@@ -130,6 +133,10 @@ public class Repository { //not synchronized.
             folder.mkdir();
         }
     }
+    
+    public static Repository getInstance() {
+        return INSTANCE;
+    }
 
     public Data load(LoadListener listener) {
         for (File scanFile : folder.listFiles()) {
@@ -137,7 +144,7 @@ public class Repository { //not synchronized.
             if (scanFile.isFile() && filename.endsWith(FILE_EXTENSION)) {
                 listener.onLoading(filename);
                 try (var ois = new ObjectInputStream(new FileInputStream(scanFile))) {
-                    data.addScan((Scan) ois.readObject());
+                    data.addScan((Scan) ois.readObject()); 
                 } catch (FileNotFoundException ex) {
                     listener.onLoadError(new Error(scanFile.getName(), ex));
                 } catch (InvalidClassException ex){
@@ -150,7 +157,7 @@ public class Repository { //not synchronized.
         listener.onLoaded(data);
         return data;
     }
-
+    
     public void addScan(Scan scan, WorkListener listener){
         if(saveScan(scan, listener)) data.addScan(scan); //add to memory only if saved.
     }
@@ -164,16 +171,12 @@ public class Repository { //not synchronized.
             oos.writeObject(scan);
             listener.onDone(scan);
             return true;
-        } catch (FileNotFoundException e) {
-            listener.onError(new Error(scan.getName(), e));
-        } catch (IOException e) {
-            listener.onError(new Error(scan.getName(), e));
+        } catch (FileNotFoundException ex) {
+            listener.onError(new Error(scan.getName(), ex));
+        } catch (IOException ex) {
+            listener.onError(new Error(scan.getName(), ex));
         }
         return false;
-    }
-    
-    private File createScanFile(String scanFilename){
-        return new File(folder, scanFilename+FILE_EXTENSION);
     }
     
     public boolean deleteScan(Scan scan){
@@ -189,6 +192,9 @@ public class Repository { //not synchronized.
         return succeeded;
     }
     
+    /**
+     * @return scans that failed to be deleted.
+     */
     public Collection<Scan> deleteScans(File drive){
         return deleteScans(data.getDriveScans(drive), null);
     }
@@ -199,6 +205,25 @@ public class Repository { //not synchronized.
             if(!deleteScan(scan, remove)) failed.add(scan);
         }
         return failed;
+    }
+    
+    /**
+     * @param scanFilenames with extension.
+     * @return {@code false} if at least one error occurred.
+     */
+    public boolean deleteScans(Collection<String> scanFilenames) {
+        boolean succedded = true;
+        for (String scanFilename : scanFilenames) {
+            File scanFile = new File(folder, scanFilename);
+            try{
+                if(!scanFile.isFile() || !scanFile.delete()){
+                    succedded = false;
+                }
+            }catch(Exception ex){
+                succedded = false;
+            }
+        }
+        return succedded;
     }
     
     public Scan renameScan(Scan scan, String newName, WorkListener listener){
@@ -213,6 +238,9 @@ public class Repository { //not synchronized.
         return null;
     }
     
+    /**
+     * @param scans if contains the 'into' scan, it will be removed.
+     */
     public Scan mergeScans(Collection<Scan> scans, Scan into, WorkListener listener){
         Scan mergedScan = new Scan(into);
         scans.remove(into); //removes base if passed along with the list; as it is the case.
@@ -229,7 +257,7 @@ public class Repository { //not synchronized.
         return mergedScan;
     }
     
-    public Scan deleteScanFolders(Scan scan, Collection<Folder> folders, WorkListener listener){
+    public Scan deleteScanFolders(Scan scan, Set<Folder> folders, WorkListener listener){
         Scan newScan = scan.getCopy();
         newScan.removeFolders(folders);
         
@@ -240,7 +268,7 @@ public class Repository { //not synchronized.
         return null;
     }
     
-    public Scan[] moveScanFolders(Scan scanFrom, Scan scanTo, Collection<Folder> folders, MoveListener listener){
+    public Scan[] moveScanFolders(Scan scanFrom, Scan scanTo, Set<Folder> folders, MoveListener listener){
         Scan scanToCopy = scanTo.getCopy();
         Scan scanFromCopy = scanFrom.getCopy();
         
@@ -256,11 +284,17 @@ public class Repository { //not synchronized.
         return null;
     }
     
-    public void moveScanFolders(Scan scanFrom, String name, File drive, Collection<Folder> folders, MoveListener listener){
+    public void moveScanFolders(Scan scanFrom, String name, File drive, Set<Folder> folders, MoveListener listener){
         Scan scanTo = new Scan(name, drive, folders);
         moveScanFolders(scanFrom, scanTo, folders, listener);
     }
     
+    /**
+     * @param scanFilename without extension.
+     */
+    private File createScanFile(String scanFilename){
+        return new File(folder, scanFilename+FILE_EXTENSION);
+    }
 
     public boolean existsScan(File drive, String name){
         return createScanFile(Scan.createFilename(drive, name)).isFile();
@@ -268,10 +302,6 @@ public class Repository { //not synchronized.
 
     public Data getData() {
         return data;
-    }
-
-    public static Repository getInstance() {
-        return INSTANCE;
     }
 
 }
