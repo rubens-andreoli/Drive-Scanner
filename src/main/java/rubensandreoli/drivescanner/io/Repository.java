@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InvalidClassException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Collection;
@@ -89,6 +90,11 @@ public class Repository { //not synchronized.
             this.message = message;
             this.cause = cause;
         }
+
+        @Override
+        public String toString() {
+            return message;
+        }
     }
     
     @FunctionalInterface
@@ -111,8 +117,8 @@ public class Repository { //not synchronized.
     }
     //</editor-fold>
 
-    private static final String FOLDER_NAME = "history";
-    private static final String FILE_EXTENSION = ".scan";
+    public static final String FOLDER_NAME = "history";
+    public static final String FILE_EXTENSION = ".scan";
     
     private static final Repository INSTANCE = new Repository();
     private final File folder;
@@ -132,10 +138,12 @@ public class Repository { //not synchronized.
                 listener.onLoading(filename);
                 try (var ois = new ObjectInputStream(new FileInputStream(scanFile))) {
                     data.addScan((Scan) ois.readObject());
-                } catch (FileNotFoundException e) {
-                    listener.onLoadError(new Error(scanFile.getName(), e));
-                } catch (IOException | ClassNotFoundException e) {
-                    listener.onLoadError(new Error(scanFile.getName(), e));
+                } catch (FileNotFoundException ex) {
+                    listener.onLoadError(new Error(scanFile.getName(), ex));
+                } catch (InvalidClassException ex){
+                     listener.onLoadError(new Error(scanFile.getName(), ex));
+                }catch (IOException | ClassNotFoundException ex) {
+                    listener.onLoadError(new Error(scanFile.getName(), ex));
                 }
             }
         }

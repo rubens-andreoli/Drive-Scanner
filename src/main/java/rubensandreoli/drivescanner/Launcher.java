@@ -26,7 +26,7 @@ public class Launcher {
         try{
             SwingUtilities.invokeLater(() -> new MainFrame().setVisible(true));
         }catch(RuntimeException ex){
-            //TODO: Logger.
+            //TODO: log.
         }
      }
     

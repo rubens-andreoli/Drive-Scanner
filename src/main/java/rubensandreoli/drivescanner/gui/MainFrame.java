@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
+import rubensandreoli.drivescanner.gui.support.DialogFactory;
 import rubensandreoli.drivescanner.gui.support.IconLoader;
 import rubensandreoli.drivescanner.io.Folder;
 import rubensandreoli.drivescanner.io.Repository;
@@ -49,6 +50,7 @@ public class MainFrame extends javax.swing.JFrame {
     private SwingWorker currentWorker;
     private boolean locked = false;
     private final AboutDialog aboutDialog;
+    private final DialogFactory dialog;
 
     public MainFrame() {
         initComponents();
@@ -71,7 +73,6 @@ public class MainFrame extends javax.swing.JFrame {
                     
                     @Override
                     public void onLoadError(Repository.Error e) {
-                        System.out.println("error");
                         errors.add(e);
                     }
                 });
@@ -91,8 +92,9 @@ public class MainFrame extends javax.swing.JFrame {
                 data = Repository.getInstance().getData();
                 setLocked(false);
                 changeSelectedDrive(toolsPanel.getSelectedDrive());
-                for (Repository.Error error : errors) { //TODO: better way to display errors combined.
-                    showLoadException(error.cause, error.message);  //TODO: option to delete when failed to load.
+                if(!errors.isEmpty() && dialog.showLoadingErrorDialog(errors)) {
+                    //TODO: implement repository delete files.
+                    dialog.showWarningDialog("Loading", "Feature not implemented yet. Please delete it manually.");
                 }
             }
         };
@@ -134,6 +136,7 @@ public class MainFrame extends javax.swing.JFrame {
         });
         
         toolsPanel.addDrives(Scanner.getRoots());
+        dialog = new DialogFactory(this);
     }
     
     //<editor-fold defaultstate="collapsed" desc="ACTIONS">
@@ -155,12 +158,8 @@ public class MainFrame extends javax.swing.JFrame {
     private void scanDrive() {
         final String actionName = "Scan";
         if(showLocked(actionName)) return;
-        
-        String scanName = createName(
-                "Enter a name for your scan:", 
-                actionName, 
-                "Choose another scan name, this one has already been used:"
-        );
+
+        String scanName = showCreateNameDialog(actionName, "Enter a name for your scan:");
         if(scanName == null) return;
         
         SwingWorker <Scan, String> scanWorker = new SwingWorker<>() {
@@ -215,14 +214,11 @@ public class MainFrame extends javax.swing.JFrame {
 
                         @Override
                         public void onError(Repository.Error e) {
-                            showSaveException(e.cause, e.message);
+                            dialog.showSaveErrorDialog(e);
                         }
                     });
                 }else{
-                    JOptionPane.showMessageDialog(MainFrame.this,
-                            "No new folders were found, this scan will not be saved.",
-                            actionName,
-                            JOptionPane.WARNING_MESSAGE);
+                    dialog.showWarningDialog(actionName, "No new folders were found, this scan will not be saved.");
                 }
                 System.gc();
             }
@@ -268,7 +264,7 @@ public class MainFrame extends javax.swing.JFrame {
                 setLocked(false);
                 if(!isCancelled()){
                     //TODO: save scan in new thread. Or the same as scan but return scan and only affect this frame on done.
-                    Repository.getInstance().updateScan(currentScan, e -> showSaveException(e.cause, e.message));
+                    Repository.getInstance().updateScan(currentScan, e -> dialog.showSaveErrorDialog(e));
                     selectScan(currentScan);
                 }
                 System.gc();
@@ -288,11 +284,11 @@ public class MainFrame extends javax.swing.JFrame {
         final String actionName = "Delete Selected";
         if(showLocked(actionName)) return;
         
-        if (confirmationAlert(actionName, "Are you sure you want to delete the selected scan(s)?")) {
-            if(scans == null) deleteScan(currentScan);
+        if (dialog.showConfirmDialog(actionName, "Are you sure you want to delete the selected scan(s)?")) {
+            if(scans == null) deleteScan(currentScan, actionName);
             else{
                 for (Scan scan : scans) {
-                    deleteScan(scan);
+                    deleteScan(scan, actionName);
                 }
             }
         }
@@ -302,17 +298,13 @@ public class MainFrame extends javax.swing.JFrame {
         final String actionName = "Delete All";
         if(showLocked(actionName)) return;
         
-        if(confirmationAlert(actionName, "Are you sure you want to delete all scans from the selected drive?")){
+        if(dialog.showConfirmDialog(actionName, "Are you sure you want to delete all scans from the selected drive?")){
             Collection<Scan> failed = Repository.getInstance().deleteScans(toolsPanel.getSelectedDrive());
             if(failed.isEmpty()){
                 listPanel.clear();
             }else{
                 listPanel.removeScans(failed);
-                JOptionPane.showMessageDialog(this, //TODO: display list in a jlist.
-                    "Scan file(s) "+Arrays.toString(failed.toArray())+" not found."
-                    + "\nReopen the program to clear it from the list.",
-                    "Error: File Not Found",
-                    JOptionPane.ERROR_MESSAGE);
+                dialog.showDeleteAllErrorDialog(failed);
             }
             driveSelected();
         }
@@ -321,12 +313,8 @@ public class MainFrame extends javax.swing.JFrame {
     private void renameScan() {
         final String actionName = "Rename";
         if(showLocked(actionName)) return;
-        
-        String scanNewName = createName(
-                "Enter a new name for your scan:", 
-                actionName, 
-                "Choose another scan name, this one has already been used:"
-        );
+
+        String scanNewName = showCreateNameDialog(actionName, "Enter a new name for your scan:");
         if(scanNewName == null) return;
         
         //TODO: rename scan in new thread.
@@ -338,7 +326,7 @@ public class MainFrame extends javax.swing.JFrame {
 
             @Override
             public void onError(Repository.Error e) {
-                showSaveException(e.cause, e.message);
+               dialog.showSaveErrorDialog(e);
             }
         });
     }
@@ -347,10 +335,10 @@ public class MainFrame extends javax.swing.JFrame {
         final String actionName = "Merge";
         
         if(!listPanel.isMultipleSelected()){
-            JOptionPane.showMessageDialog(this, "Multiple scans must be selected to perform a merge operation.", actionName, JOptionPane.WARNING_MESSAGE);
+            dialog.showWarningDialog(actionName, "Multiple scans must be selected to perform a merge operation.");
         }else{
             if(showLocked(actionName)) return;
-            if(confirmationAlert(actionName, "Are you sure you want to merge all the selected scans?"
+            if(dialog.showConfirmDialog(actionName, "Are you sure you want to merge all the selected scans?"
                     + "\nAll scans will be merged into the first one selected: [" + currentScan +"]")){
                 Collection<Scan> selectedScans = listPanel.getSelectedScans();
                 Repository.getInstance().mergeScans(selectedScans, currentScan, new Repository.WorkListener() {
@@ -362,7 +350,7 @@ public class MainFrame extends javax.swing.JFrame {
 
                     @Override
                     public void onError(Repository.Error e) {
-                        showSaveException(e.cause, e.message);
+                        dialog.showSaveErrorDialog(e);
                     }
                 });
             }
@@ -373,18 +361,18 @@ public class MainFrame extends javax.swing.JFrame {
         final String actionName = "Delete Folders";
         if(showLocked(actionName)) return;
         
-        if(confirmationAlert(actionName, "Are you sure you want to delete the selected folder(s) from this scan?")){ //TODO: show list of selected folders in a jlist.
+        if(dialog.showConfirmDialog(actionName, "Are you sure you want to delete the selected folder(s) from this scan?")){
             //TODO: delete scan's folders in new thread.
             Repository.getInstance().deleteScanFolders(currentScan, folders, new Repository.WorkListener() {
             @Override
             public void onDone(Scan scan) {
                 listPanel.replaceScan(currentScan, scan, true);
-                checkScanEmpty();
+                checkScanEmpty(actionName);
             }
 
             @Override
             public void onError(Repository.Error e) {
-                showSaveException(e.cause, e.message);
+                dialog.showSaveErrorDialog(e);
             }
         });
         }
@@ -394,19 +382,19 @@ public class MainFrame extends javax.swing.JFrame {
         final String actionName = "Move Folders";
         if(showLocked(actionName)) return;
         
-        Scan selectedScan = SelectionDialog.showSelectionDialog(this, data.getDriveScans(toolsPanel.getSelectedDrive()));
+        Scan selectedScan = dialog.showSelectScanDialog(data.getDriveScans(toolsPanel.getSelectedDrive()));
         if(selectedScan != null){
             Repository.getInstance().moveScanFolders(currentScan, selectedScan, folders, new Repository.MoveListener() {
                 @Override
                 public void onMoved(Scan scanFrom, Scan scanTo) {
                     listPanel.replaceScan(selectedScan, scanTo, false); //without selection must be first.
                     listPanel.replaceScan(currentScan, scanFrom, true);
-                    checkScanEmpty();
+                    checkScanEmpty(actionName);
                 }
                 
                 @Override
                 public void onMoveError(Repository.Error e) {
-                    showSaveException(e.cause, e.message);
+                    dialog.showSaveErrorDialog(e);
                 }
             });
         }
@@ -416,23 +404,19 @@ public class MainFrame extends javax.swing.JFrame {
         final String actionName = "Move Folders";
         if(showLocked(actionName)) return;
         
-        String scanName = createName(
-                "Enter a name for your scan:", 
-                actionName, 
-                "Choose another scan name, this one has already been used:"
-        );
+        String scanName = showCreateNameDialog(actionName, "Enter a name for your scan:");
         if(scanName == null) return;
         Repository.getInstance().moveScanFolders(currentScan, scanName, toolsPanel.getSelectedDrive(), folders, new Repository.MoveListener() {
             @Override
             public void onMoved(Scan scanFrom, Scan scanTo) {
                 listPanel.addScan(scanTo, false); //without selection must be first.
                 listPanel.replaceScan(currentScan, scanFrom, true);
-                checkScanEmpty();
+                checkScanEmpty(actionName);
             }
 
             @Override
             public void onMoveError(Repository.Error e) {
-                showSaveException(e.cause, e.message);
+                dialog.showSaveErrorDialog(e);
             }
         });
     }
@@ -458,17 +442,6 @@ public class MainFrame extends javax.swing.JFrame {
     private void setStopEnabled(boolean enabled){
         toolsPanel.setStopEnabled(enabled);
         mniStop.setEnabled(enabled);
-    }
-    
-    private String createName(String msg, String title, String msgError){
-        String name = JOptionPane.showInputDialog(this, msg, title, JOptionPane.QUESTION_MESSAGE);
-        if (name == null || name.equals("")) return null;
-        File drive = toolsPanel.getSelectedDrive();
-        while(Repository.getInstance().existsScan(drive, name)){
-            name = JOptionPane.showInputDialog(this, msgError, title, JOptionPane.WARNING_MESSAGE);
-            if (name == null || name.equals("")) return null;
-        }
-        return name;
     }
     
     private void setEditEnabled(boolean enabled){
@@ -497,16 +470,12 @@ public class MainFrame extends javax.swing.JFrame {
         mniDeleteAll.setEnabled(locked? locked : isSelectedDriveNotEmpty()); //if not locked, check if there is any scans to delete.
     }
     
-    private void deleteScan(Scan scan){ //helper method.
+    private void deleteScan(Scan scan, String action){
         if (Repository.getInstance().deleteScan(scan)) {
             listPanel.removeScan(scan);
             driveSelected();
         } else {
-            JOptionPane.showMessageDialog(MainFrame.this,
-                    "Scan file not found. "
-                    + "Reopen the program to clear it from the list.",
-                    "Error: File Not Found",
-                    JOptionPane.ERROR_MESSAGE);
+            dialog.showErrorDialog(action, "Scan file not found.\nReopening the program should clear it from the list.");
         }
     }
         
@@ -515,63 +484,19 @@ public class MainFrame extends javax.swing.JFrame {
     }
     
     private boolean showLocked(String action){
-        if(locked){
-            JOptionPane.showMessageDialog(this, 
-                    "This action cannot be performed while the program is busy.", 
-                    action, 
-                    JOptionPane.WARNING_MESSAGE);
-        }
+        if(locked) dialog.showWarningDialog(action, "This action cannot be performed while the program is busy.");
         return locked;
     }
     
-    private void checkScanEmpty(){
-        if(currentScan.isEmpty() && confirmationAlert("Delete", "Due to being edited the selected scan is now empty."
+    private void checkScanEmpty(String action){
+        if(currentScan.isEmpty() && dialog.showConfirmDialog(action, "Due to being edited the selected scan is now empty."
                 + "\nDo you want to delete it?")){
-            deleteScan(currentScan);
+            deleteScan(currentScan, action);
         }
     }
     
-    private boolean confirmationAlert(String title, String msg){
-        return (JOptionPane.showConfirmDialog(this, msg, title, JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION);
-    }
-        
-    private void showSaveException(Exception e, String scanName){
-        try{
-            throw e;
-        } catch (FileNotFoundException ex) {
-            JOptionPane.showMessageDialog(this, "History folder not found. Reopening the program should fix it. "
-                    + "If problem persists, try creating manually a folder named 'history' in the same folder as the program.", 
-                    "Error: File Not Found", 
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Scan '" + scanName + "' information could not be saved. "
-                    + "Verify folder access permissions.", "Error: File Access Denied", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "What now?! " + ex.getMessage(), "Error: Unexpected", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-    
-    private void showLoadException(Exception e, String fileName){
-        try{
-            throw e;
-        } catch (FileNotFoundException ex) {
-            JOptionPane.showMessageDialog(this, 
-                    "Scan file '" + fileName + "' not found. It may have been deleted while the program was loading.", 
-                    "Error: File Not Found", 
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, 
-                    "Scan file '" + fileName + "' could not be opened. Verify 'History' folder access permissions.", 
-                    "Error: File Access Denied", 
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (ClassNotFoundException ex) {
-            JOptionPane.showMessageDialog(this, 
-                    "Scan file '" + fileName + "' is an outdated scan file. Manually deleting the 'history' folder or the scan should fix the problem.", 
-                    "Error: Invalid Data", 
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "What now?! " + ex.getMessage(), "Error: Unexpected", JOptionPane.ERROR_MESSAGE);
-        }
+    private String showCreateNameDialog(String title, String msg){
+        return dialog.showCreateScanNameDialog(title, msg, toolsPanel.getSelectedDrive());
     }
     //</editor-fold>
 

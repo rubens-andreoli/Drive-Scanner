@@ -311,7 +311,7 @@ public class AboutDialog extends javax.swing.JDialog {
                 }
 
                 if(exception != null){
-                   //TODO: Logger.
+                   //TODO: log.
                 }
             }
         });
