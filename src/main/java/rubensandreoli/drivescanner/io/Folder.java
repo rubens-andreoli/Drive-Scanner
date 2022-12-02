@@ -108,6 +108,10 @@ public class Folder implements Serializable, Comparable<Folder> {
     public int getTotalFiles(){
         return files.size();
     }
+    
+    public Map<String, Long> getFiles(){
+        return files;
+    }
 
     public State getState() {
         return state;

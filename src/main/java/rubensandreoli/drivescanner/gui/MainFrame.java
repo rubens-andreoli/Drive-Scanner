@@ -90,6 +90,11 @@ public class MainFrame extends javax.swing.JFrame {
             public @Override void onMoveFoldersNew(Set<Folder> folders) {moveFoldersNew(folders);}
             public @Override void onMoveFoldersInto(Set<Folder> folders) {moveFoldersInto(folders);}
         });
+        tabPanel.addChangeListener(e -> {
+            if(currentScan != null && tabPanel.getSelectedComponent() == treePanel){
+                treePanel.setScan(currentScan); //FIX: changing even if scan is the same. (cache solves this, but is it the best solution?)
+            }
+        });
         
         toolsPanel.addDrives(Scanner.getRoots());
         
@@ -109,6 +114,9 @@ public class MainFrame extends javax.swing.JFrame {
         setEditEnabled(!locked); //edit scan only if not locked.
         toolsPanel.setScan(currentScan);
         tablePanel.setScan(currentScan);
+        if(tabPanel.getSelectedComponent() == treePanel){
+            treePanel.setScan(currentScan);
+        }
         statusPanel.setTotals(currentScan.getTotalFolders(), currentScan.getTotalFiles());
     }
     
@@ -467,6 +475,7 @@ public class MainFrame extends javax.swing.JFrame {
         toolsPanel.clear();
         tablePanel.clear();
         statusPanel.clear();
+        treePanel.clear();
     }
     
     private void setLocked(boolean locked){
@@ -513,7 +522,9 @@ public class MainFrame extends javax.swing.JFrame {
     private void initComponents() {
 
         contentPanel = new javax.swing.JPanel();
+        tabPanel = new javax.swing.JTabbedPane();
         tablePanel = new rubensandreoli.drivescanner.gui.TablePanel();
+        treePanel = new rubensandreoli.drivescanner.gui.TreePanel();
         statusPanel = new rubensandreoli.drivescanner.gui.StatusPanel();
         sidePanel = new javax.swing.JPanel();
         toolsPanel = new rubensandreoli.drivescanner.gui.ToolsPanel();
@@ -548,7 +559,11 @@ public class MainFrame extends javax.swing.JFrame {
 
         contentPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 6, 6, 6));
         contentPanel.setLayout(new java.awt.BorderLayout(0, 6));
-        contentPanel.add(tablePanel, java.awt.BorderLayout.CENTER);
+
+        tabPanel.addTab("Table", tablePanel);
+        tabPanel.addTab("Tree", treePanel);
+
+        contentPanel.add(tabPanel, java.awt.BorderLayout.CENTER);
         contentPanel.add(statusPanel, java.awt.BorderLayout.PAGE_END);
 
         getContentPane().add(contentPanel, java.awt.BorderLayout.CENTER);
@@ -673,8 +688,10 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JPopupMenu.Separator sprFile2;
     private javax.swing.JPopupMenu.Separator sprView;
     private rubensandreoli.drivescanner.gui.StatusPanel statusPanel;
+    private javax.swing.JTabbedPane tabPanel;
     private rubensandreoli.drivescanner.gui.TablePanel tablePanel;
     private rubensandreoli.drivescanner.gui.ToolsPanel toolsPanel;
+    private rubensandreoli.drivescanner.gui.TreePanel treePanel;
     // End of variables declaration//GEN-END:variables
 
 }
