@@ -82,7 +82,7 @@ public class TablePanel extends javax.swing.JPanel {
             }
         }
         
-        private static Map<Folder, String> getMap(){
+        private Map<Folder, String> getMap(){
             return new TreeMap<>();
         }
 

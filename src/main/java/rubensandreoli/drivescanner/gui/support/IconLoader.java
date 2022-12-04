@@ -16,6 +16,11 @@
  */
 package rubensandreoli.drivescanner.gui.support;
 
+import java.awt.AlphaComposite;
+import java.awt.Component;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import javax.swing.Icon;
 import javax.swing.ImageIcon;
 
 public class IconLoader {
@@ -26,6 +31,28 @@ public class IconLoader {
         } catch (NullPointerException ex) {
             return new ImageIcon();
         }
+    }
+    
+    public static Icon applyAlpha(final Icon icon, final Float alpha){
+        return new Icon(){
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                 Graphics2D g2 = (Graphics2D) g.create();
+                 g2.setComposite(AlphaComposite.SrcAtop.derive(alpha));
+                 icon.paintIcon(c, g2, x, y);
+                 g2.dispose();
+            }
+
+            @Override
+            public int getIconWidth() {
+                return icon.getIconWidth();
+            }
+
+            @Override
+            public int getIconHeight() {
+                return icon.getIconHeight();
+            }
+        };
     }
 
 }

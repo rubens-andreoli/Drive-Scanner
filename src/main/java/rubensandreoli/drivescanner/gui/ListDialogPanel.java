@@ -17,12 +17,14 @@
 package rubensandreoli.drivescanner.gui;
 
 import java.util.Collection;
+import java.util.Set;
+import java.util.TreeSet;
 import javax.swing.DefaultListModel;
 import javax.swing.event.ListSelectionListener;
 
-public class ListDialogPanel extends javax.swing.JPanel {
+public class ListDialogPanel<T> extends javax.swing.JPanel {
 
-    private final DefaultListModel lstModel = new DefaultListModel<>();
+    private DefaultListModel<T> lstModel = new DefaultListModel<>();
     
     public ListDialogPanel() {
         initComponents();
@@ -32,8 +34,13 @@ public class ListDialogPanel extends javax.swing.JPanel {
         lblMsg.setText("<html>"+msg+"</html>");
     }
 
-    public void addItems(Collection items){
-        lstModel.addAll(items);
+    public void setItems(Collection<T> items){
+        Set<T> ordered = new TreeSet<>((o1, o2) -> {
+            return o1.toString().compareToIgnoreCase(o2.toString());
+        });
+        ordered.addAll(items);
+        lstModel.clear();
+        lstModel.addAll(ordered);
     }
     
     public void addSelectionListener(ListSelectionListener listener){
@@ -44,8 +51,8 @@ public class ListDialogPanel extends javax.swing.JPanel {
         lstScans.setToolTipText(text);
     }
     
-    public <T> T getSelectedValue(Class<T> clazz){
-        return clazz.cast(this.lstScans.getSelectedValue());
+    public T getSelectedValue(){
+        return (T) lstScans.getSelectedValue();
     }
 
     @SuppressWarnings("unchecked")

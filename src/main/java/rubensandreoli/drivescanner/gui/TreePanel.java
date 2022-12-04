@@ -16,23 +16,60 @@
  */
 package rubensandreoli.drivescanner.gui;
 
+import java.awt.Component;
 import java.io.File;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
+import javax.swing.Icon;
+import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import rubensandreoli.drivescanner.gui.support.IconLoader;
 import rubensandreoli.drivescanner.io.Folder;
 import rubensandreoli.drivescanner.io.Scan;
 
 public class TreePanel extends javax.swing.JPanel {
+    
+    //<editor-fold defaultstate="collapsed" desc="TREE RENDERER">
+    private class TreeCellRenderer extends DefaultTreeCellRenderer{
 
-    private static final int CACHE_SIZE = 4;
-    private static final DefaultTreeModel EMPTY_MODEL = new DefaultTreeModel(null);
+        private boolean isIncluded;
+        private boolean isFolder;
+        
+        @Override
+        public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
+            Node node = ((Node)value);
+            isIncluded = node.isIncluded;
+            isFolder = node.isFolder;
+            return super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
+        }
+    
+        private Icon getIncludedIcon(Icon icon){
+            if(isIncluded) return icon;
+            return IconLoader.applyAlpha(icon, 0.4f);
+        }
+        
+        @Override
+        public Icon getClosedIcon() {           
+            return getIncludedIcon(super.getClosedIcon());
+        }
+
+        @Override
+        public Icon getOpenIcon() {
+            return getIncludedIcon(super.getOpenIcon());
+        }
+
+        @Override
+        public Icon getLeafIcon() {
+            if(isFolder) return getClosedIcon();
+            return super.getLeafIcon();
+        }
+        
+    }
+    //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="CACHE">
     private class Cache extends LinkedHashMap<Scan, DefaultMutableTreeNode> {
@@ -54,29 +91,31 @@ public class TreePanel extends javax.swing.JPanel {
     //<editor-fold defaultstate="collapsed" desc="NODE">
     private class Node extends DefaultMutableTreeNode{
 
-        private boolean isLeaf;
-        
-        public Node(String name, boolean isLeaf) {
-            super(name);
-            this.isLeaf = isLeaf;
-        }
-        
+        private final boolean isIncluded;
+        private final boolean isFolder;
+               
         public Node(String name){
-            this(name, false);
+            this(name, true, true);
         }
 
-        @Override
-        public boolean isLeaf() { //TODO: extend renderer instead.
-            return isLeaf;
+        public Node(String name, boolean isIncluded, boolean isFolder){
+            super(name);
+            this.isIncluded = isIncluded;
+            this.isFolder = isFolder;
         }
         
     }
     //</editor-fold>
     
+    private static final int CACHE_SIZE = 4;
+    private static final DefaultTreeModel EMPTY_MODEL = new DefaultTreeModel(null);
+    
+    private final TreeCellRenderer cellRenderer = new TreeCellRenderer();
     private final Cache cachedTree = new Cache(CACHE_SIZE); //FIX: what if scan changed? clear from cache or no cache at all.
     
     public TreePanel() {
         initComponents();
+        treFiles.setCellRenderer(cellRenderer);
     }
 
     void setScan(Scan scan){ //TODO: ordered tree nodes.
@@ -90,7 +129,7 @@ public class TreePanel extends javax.swing.JPanel {
     private void addFilesToFolderNode(Folder folder, DefaultMutableTreeNode node){
         Set<String> filenames = folder.getFiles().keySet(); //does this improve performance or better to just use inside the loop?
         for (String filename : filenames) {
-            node.add(new Node(filename, true));
+            node.add(new Node(filename, true, false));
         }
     }
     
@@ -103,7 +142,7 @@ public class TreePanel extends javax.swing.JPanel {
         
         Map<String, DefaultMutableTreeNode> allNodes = new HashMap<>();
         String rootPath = scan.getDrive().getPath();
-        var root =  new DefaultMutableTreeNode(rootPath);
+        var root =  new Node(rootPath, false, true);
         allNodes.put(rootPath, root);
         
         Set<Folder> folders = scan.getFolders(); //does this improve performance or better to just use inside the loop?
@@ -124,7 +163,7 @@ public class TreePanel extends javax.swing.JPanel {
                 folderPath = folderFile.getPath();
                 var parentNode = allNodes.get(folderPath);
                 if(parentNode == null){
-                    parentNode = new Node(folderFile.getName());
+                    parentNode = new Node(folderFile.getName(), false, true);
                     allNodes.put(folderPath, parentNode);
                     parentNode.add(node);
                     node = parentNode;

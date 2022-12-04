@@ -48,7 +48,7 @@ public class MainFrame extends javax.swing.JFrame {
 
     private Repository.Data data;
     private Scan currentScan;
-    private SwingWorker currentWorker;
+    private SwingWorker<?,?> currentWorker;
     private boolean locked = false;
     private final DialogFactory df;
 

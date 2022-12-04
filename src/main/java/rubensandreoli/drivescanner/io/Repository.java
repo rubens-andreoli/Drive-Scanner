@@ -193,6 +193,7 @@ public class Repository { //not synchronized.
     }
     
     /**
+     * @param drive
      * @return scans that failed to be deleted.
      */
     public Collection<Scan> deleteScans(File drive){
@@ -240,6 +241,9 @@ public class Repository { //not synchronized.
     
     /**
      * @param scans if contains the 'into' scan, it will be removed.
+     * @param into
+     * @param listener
+     * @return 
      */
     public Scan mergeScans(Collection<Scan> scans, Scan into, WorkListener listener){
         Scan mergedScan = new Scan(into);

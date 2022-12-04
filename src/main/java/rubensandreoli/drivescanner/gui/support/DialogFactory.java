@@ -56,7 +56,7 @@ public class DialogFactory {
     }
     
     public String showCreateScanNameDialog(String title, String msg, File selectedDrive){
-        String name = JOptionPane.showInputDialog(parent, msg, title, JOptionPane.QUESTION_MESSAGE);
+        String name = JOptionPane.showInputDialog(parent, msg, title, JOptionPane.QUESTION_MESSAGE).trim();
         if (name == null || name.equals("")) return null;
         while(Repository.getInstance().existsScan(selectedDrive, name)){
             name = JOptionPane.showInputDialog(parent, "Choose another scan name, this one has already been used:", title, JOptionPane.WARNING_MESSAGE);
@@ -65,6 +65,7 @@ public class DialogFactory {
         return name;
     }
     
+    @SuppressWarnings("UseSpecificCatch")
     public void showSaveErrorDialog(Repository.Error error){
         String cause;
         try{
@@ -84,15 +85,16 @@ public class DialogFactory {
         JOptionPane.showMessageDialog(parent, cause, "Save", JOptionPane.ERROR_MESSAGE);
     }
     
+    @SuppressWarnings("UseSpecificCatch")
     public boolean showLoadingErrorDialog(Collection<Repository.Error> errors){
-        var panel = new ListDialogPanel();
+        var panel = new ListDialogPanel<Repository.Error>();
         panel.setText("The following scan(s) could not be loaded, do you want to delete them?");
-        panel.addItems(errors);
+        panel.setItems(errors);
         panel.addSelectionListener(e -> {
             if(!e.getValueIsAdjusting()){
                 String cause;
                 try{
-                    throw panel.getSelectedValue(Repository.Error.class).cause;
+                    throw panel.getSelectedValue().cause;
                 } catch (FileNotFoundException ex) {
                     cause = "Scan file not found. It may have been deleted while the program was loading.";
                 } catch (InvalidClassException ex) {
@@ -112,21 +114,21 @@ public class DialogFactory {
     }
     
     public void showDeleteAllErrorDialog(Collection<Scan> scans){
-        var panel = new ListDialogPanel();
+        var panel = new ListDialogPanel<Scan>();
         panel.setText("Scan file(s) could not be deleted."
                 + "The file(s) may have been deleted. "
                 + "\nIf reopening the program does not remove it(them) from the list,"
                 + "\nplease verify '"+Repository.FOLDER_NAME+"' folder access permissions.");
-        panel.addItems(scans);
+        panel.setItems(scans);
         JOptionPane.showMessageDialog(parent, panel, "Delete All", JOptionPane.ERROR_MESSAGE);
     }
     
     public Scan showSelectScanDialog(Collection<Scan> scans){
-        var panel = new ListDialogPanel();
+        var panel = new ListDialogPanel<Scan>();
         panel.setText("Select to which scan you want to move the selected folder(s):");
-        panel.addItems(scans);
+        panel.setItems(scans);
         if(JOptionPane.showConfirmDialog(parent, panel, "Move", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE) == JOptionPane.YES_OPTION){
-            return panel.getSelectedValue(Scan.class);
+            return panel.getSelectedValue();
         }else{
             return null;
         }

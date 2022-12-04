@@ -86,12 +86,7 @@ public class Scan implements Serializable{
     }
     
     public static Collection<Scan> getNewScanCollection(){
-        return new TreeSet<>(new Comparator<Scan>() {
-            @Override
-            public int compare(Scan s1, Scan s2) {
-                return s1.date.compareTo(s2.date);
-            }
-        });
+        return new TreeSet<>((s1, s2) -> s1.date.compareTo(s2.date));
     }
 
     void setUpdated(Date updatedDate) {
