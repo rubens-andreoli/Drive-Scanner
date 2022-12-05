@@ -291,7 +291,7 @@ public class AboutDialog extends javax.swing.JDialog {
         return this;
     }
     
-    private static void addClickableLink(Component c, String url){
+    private static void addClickableLink(Component c, final String url){
         c.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         c.addMouseListener(new MouseAdapter() {
             @Override

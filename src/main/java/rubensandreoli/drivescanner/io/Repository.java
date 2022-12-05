@@ -30,14 +30,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 public class Repository { //not synchronized.
 
     //<editor-fold defaultstate="collapsed" desc="DATA">
-    public class Data {
+    public static class Data {
 
         private final Map<File, Collection<Scan>> scans = new HashMap<>();
+        
+        private Data(){}
 
         /**
          * @param scan if data already contains a scan with the same date, it won't be added.
@@ -157,7 +158,7 @@ public class Repository { //not synchronized.
         listener.onLoaded(data);
         return data;
     }
-    
+     
     public void addScan(Scan scan, WorkListener listener){
         if(saveScan(scan, listener)) data.addScan(scan); //add to memory only if saved.
     }
@@ -179,7 +180,7 @@ public class Repository { //not synchronized.
         return false;
     }
     
-    public boolean deleteScan(Scan scan){
+    public boolean deleteScan(Scan scan){ //TODO: change behaviour to remove from memory even if failed to delete, just show warning.
         return deleteScan(scan, null);
     }
     
@@ -193,6 +194,8 @@ public class Repository { //not synchronized.
     }
     
     /**
+     * Scans that failed to be deleted will not be removed from memory.
+     * 
      * @param drive
      * @return scans that failed to be deleted.
      */

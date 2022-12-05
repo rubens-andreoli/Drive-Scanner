@@ -18,14 +18,10 @@ package rubensandreoli.drivescanner.gui;
 
 import java.awt.Cursor;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import rubensandreoli.drivescanner.gui.support.DialogFactory;
 import rubensandreoli.drivescanner.gui.support.IconLoader;
@@ -244,7 +240,7 @@ public class MainFrame extends javax.swing.JFrame {
         currentWorker = scanWorker;
         scanWorker.execute();
     }
-    
+
     private void updateScan() {
         if(showLocked("Update")) return;
         
@@ -281,6 +277,7 @@ public class MainFrame extends javax.swing.JFrame {
                 if(!isCancelled()){
                     //TODO: save scan in new thread. Or the same as scan but return scan and only affect this frame on done.
                     Repository.getInstance().updateScan(currentScan, e -> df.showSaveErrorDialog(e));
+                    treePanel.invalidateCache(currentScan);
                     selectScan(currentScan);
                 }
                 System.gc();
@@ -318,8 +315,9 @@ public class MainFrame extends javax.swing.JFrame {
             Collection<Scan> failed = Repository.getInstance().deleteScans(toolsPanel.getSelectedDrive());
             if(failed.isEmpty()){
                 listPanel.clear();
+                treePanel.invalidadeCache();
             }else{
-                listPanel.removeScans(failed);
+                listPanel.removeScans(failed); //FIX: should be remove all but, and invalidate them.
                 df.showDeleteAllErrorDialog(failed);
             }
             driveSelected();
@@ -337,6 +335,7 @@ public class MainFrame extends javax.swing.JFrame {
         Repository.getInstance().renameScan(currentScan, scanNewName, new Repository.WorkListener() {
             @Override
             public void onDone(Scan scan) {
+                treePanel.invalidateCache(currentScan); //needed! other scan can be renamed with the same named this one was cached.
                 listPanel.replaceScan(currentScan, scan, true);
             }
 
@@ -356,11 +355,15 @@ public class MainFrame extends javax.swing.JFrame {
             if(showLocked(actionName)) return;
             if(df.showConfirmDialog(actionName, "Are you sure you want to merge all the selected scans?"
                     + "\nAll scans will be merged into the first one selected: [" + currentScan +"]")){
-                Collection<Scan> selectedScans = listPanel.getSelectedScans();
+                final Collection<Scan> selectedScans = listPanel.getSelectedScans();
                 Repository.getInstance().mergeScans(selectedScans, currentScan, new Repository.WorkListener() {
                     @Override
                     public void onDone(Scan scan) {
-                        listPanel.removeScans(selectedScans);
+                        treePanel.invalidateCache(scan);
+                        for (Scan selectedScan : selectedScans) {
+                            treePanel.invalidateCache(selectedScan);
+                        }
+                        listPanel.removeScans(selectedScans); //current scan was removed from the list.
                         listPanel.replaceScan(currentScan, scan, true);
                     }
 
@@ -382,6 +385,7 @@ public class MainFrame extends javax.swing.JFrame {
             Repository.getInstance().deleteScanFolders(currentScan, folders, new Repository.WorkListener() {
             @Override
             public void onDone(Scan scan) {
+                treePanel.invalidateCache(scan);
                 listPanel.replaceScan(currentScan, scan, true);
                 checkScanEmpty(actionName);
             }
@@ -403,6 +407,8 @@ public class MainFrame extends javax.swing.JFrame {
             Repository.getInstance().moveScanFolders(currentScan, selectedScan, folders, new Repository.MoveListener() {
                 @Override
                 public void onMoved(Scan scanFrom, Scan scanTo) {
+                    treePanel.invalidateCache(scanFrom);
+                    treePanel.invalidateCache(scanTo);
                     listPanel.replaceScan(selectedScan, scanTo, false); //without selection must be first.
                     listPanel.replaceScan(currentScan, scanFrom, true);
                     checkScanEmpty(actionName);
@@ -425,6 +431,7 @@ public class MainFrame extends javax.swing.JFrame {
         Repository.getInstance().moveScanFolders(currentScan, scanName, toolsPanel.getSelectedDrive(), folders, new Repository.MoveListener() {
             @Override
             public void onMoved(Scan scanFrom, Scan scanTo) {
+                treePanel.invalidateCache(scanFrom);
                 listPanel.addScan(scanTo, false); //without selection must be first.
                 listPanel.replaceScan(currentScan, scanFrom, true);
                 checkScanEmpty(actionName);
@@ -490,6 +497,7 @@ public class MainFrame extends javax.swing.JFrame {
     private void deleteScan(Scan scan, String action){
         if (Repository.getInstance().deleteScan(scan)) {
             listPanel.removeScan(scan);
+            treePanel.invalidateCache(scan);
             driveSelected();
         } else {
             df.showErrorDialog(action, "Scan file not found.\nReopening the program should clear it from the list.");

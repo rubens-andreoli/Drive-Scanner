@@ -56,7 +56,8 @@ public class DialogFactory {
     }
     
     public String showCreateScanNameDialog(String title, String msg, File selectedDrive){
-        String name = JOptionPane.showInputDialog(parent, msg, title, JOptionPane.QUESTION_MESSAGE).trim();
+        String name = JOptionPane.showInputDialog(parent, msg, title, JOptionPane.QUESTION_MESSAGE);
+        name = name.trim();
         if (name == null || name.equals("")) return null;
         while(Repository.getInstance().existsScan(selectedDrive, name)){
             name = JOptionPane.showInputDialog(parent, "Choose another scan name, this one has already been used:", title, JOptionPane.WARNING_MESSAGE);

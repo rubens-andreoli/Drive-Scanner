@@ -30,7 +30,8 @@ public class Scan implements Serializable{
 
     private static final String FILENAME_DIVISOR = "-";
     private static final String NORMALIZATION_REGEX = "[<>:\"\\\\/|?*]";
-    
+    private static final Comparator<Scan> DATE_COMPARATOR = (s1, s2) -> s1.date.compareTo(s2.date);
+
     private final String name, filename;
     private final File drive;
     private final Set<Folder> folders;
@@ -86,7 +87,7 @@ public class Scan implements Serializable{
     }
     
     public static Collection<Scan> getNewScanCollection(){
-        return new TreeSet<>((s1, s2) -> s1.date.compareTo(s2.date));
+        return new TreeSet<>(DATE_COMPARATOR);
     }
 
     void setUpdated(Date updatedDate) {

@@ -34,7 +34,7 @@ import rubensandreoli.drivescanner.io.Scan;
 public class TreePanel extends javax.swing.JPanel {
     
     //<editor-fold defaultstate="collapsed" desc="TREE RENDERER">
-    private class TreeCellRenderer extends DefaultTreeCellRenderer{
+    private static class ScanTreeCellRenderer extends DefaultTreeCellRenderer{
 
         private boolean isIncluded;
         private boolean isFolder;
@@ -42,8 +42,8 @@ public class TreePanel extends javax.swing.JPanel {
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
             Node node = ((Node)value);
-            isIncluded = node.isIncluded;
-            isFolder = node.isFolder;
+            isIncluded = node.included;
+            isFolder = node.folder;
             return super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
         }
     
@@ -72,7 +72,7 @@ public class TreePanel extends javax.swing.JPanel {
     //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="CACHE">
-    private class Cache extends LinkedHashMap<Scan, DefaultMutableTreeNode> {
+    private static class Cache extends LinkedHashMap<Scan, DefaultTreeModel> {
 
         private final int size;
         
@@ -89,37 +89,51 @@ public class TreePanel extends javax.swing.JPanel {
     //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="NODE">
-    private class Node extends DefaultMutableTreeNode{
+    private static class Node extends DefaultMutableTreeNode{
 
-        private final boolean isIncluded;
-        private final boolean isFolder;
+        private final boolean included;
+        private final boolean folder;
                
         public Node(String name){
             this(name, true, true);
         }
 
-        public Node(String name, boolean isIncluded, boolean isFolder){
+        public Node(String name, boolean included, boolean folder){
             super(name);
-            this.isIncluded = isIncluded;
-            this.isFolder = isFolder;
+            this.included = included;
+            this.folder = folder;
         }
-        
+
     }
     //</editor-fold>
     
-    private static final int CACHE_SIZE = 4;
     private static final DefaultTreeModel EMPTY_MODEL = new DefaultTreeModel(null);
-    
-    private final TreeCellRenderer cellRenderer = new TreeCellRenderer();
-    private final Cache cachedTree = new Cache(CACHE_SIZE); //FIX: what if scan changed? clear from cache or no cache at all.
+
+    private final Cache cachedTree = new Cache(4); //TODO: is a cache worth it?
     
     public TreePanel() {
         initComponents();
-        treFiles.setCellRenderer(cellRenderer);
+        treFiles.setCellRenderer(new ScanTreeCellRenderer());
     }
 
-    void setScan(Scan scan){ //TODO: ordered tree nodes.
-        treFiles.setModel(new DefaultTreeModel(createTree(scan)));
+    void setScan(Scan scan){
+        if(cachedTree.containsKey(scan)){
+            System.out.println("cached"); //TODO: remove.
+            treFiles.setModel(cachedTree.get(scan));
+        }else{
+            System.out.println("new"); //TODO: remove.
+            var newModel = new DefaultTreeModel(createTree(scan));
+            cachedTree.put(scan, newModel);
+            treFiles.setModel(newModel);
+        }
+    }
+    
+    void invalidateCache(Scan scan){
+        cachedTree.remove(scan);
+    }
+    
+    void invalidadeCache(){
+        cachedTree.clear();
     }
     
     void clear() {
@@ -133,13 +147,7 @@ public class TreePanel extends javax.swing.JPanel {
         }
     }
     
-    private DefaultMutableTreeNode createTree(Scan scan){ //TODO: try to do this extending TreeModel.
-        if(cachedTree.containsKey(scan)){
-            System.out.println("cached");
-            return cachedTree.get(scan);
-        }
-        System.out.println("new");
-        
+    private DefaultMutableTreeNode createTree(Scan scan){ //TODO: try to do this extending TreeModel, and order the nodes.
         Map<String, DefaultMutableTreeNode> allNodes = new HashMap<>();
         String rootPath = scan.getDrive().getPath();
         var root =  new Node(rootPath, false, true);
@@ -175,7 +183,6 @@ public class TreePanel extends javax.swing.JPanel {
             }
             
         }
-        cachedTree.put(scan, root);
         return root;
     }
 

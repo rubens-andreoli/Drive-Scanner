@@ -26,7 +26,7 @@ public class Folder implements Serializable, Comparable<Folder> {
 
     private static final long serialVersionUID = 3L;
 
-    public static enum State implements Serializable{
+    public enum State implements Serializable{
         UNCHANGED, DELETED, INCREASED, DECREASED
     };
 

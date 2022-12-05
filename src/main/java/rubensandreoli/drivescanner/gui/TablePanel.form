@@ -76,7 +76,7 @@
           </Properties>
           <AuxValues>
             <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new javax.swing.JTable(tblFoldersModel);"/>
-            <AuxValue name="JavaCodeGenerator_CreateCodePost" type="java.lang.String" value="tblFolders.getTableHeader().setReorderingAllowed(false);&#xd;&#xa;tblFolders.getColumnModel().getColumn(1).setMaxWidth(65);&#xd;&#xa;tblFolders.getColumnModel().getColumn(0).setResizable(false);&#xd;&#xa;tblFolders.getColumnModel().getColumn(1).setResizable(false);&#xd;&#xa;&#xd;&#xa;tblFolders.setDefaultRenderer(Object.class, new TableCellRenderer());"/>
+            <AuxValue name="JavaCodeGenerator_CreateCodePost" type="java.lang.String" value="tblFolders.getTableHeader().setReorderingAllowed(false);&#xd;&#xa;tblFolders.getColumnModel().getColumn(1).setMaxWidth(65);&#xd;&#xa;tblFolders.getColumnModel().getColumn(0).setResizable(false);&#xd;&#xa;tblFolders.getColumnModel().getColumn(1).setResizable(false);&#xd;&#xa;&#xd;&#xa;tblFolders.setDefaultRenderer(Object.class, new FolderTableCellRenderer());"/>
           </AuxValues>
         </Component>
       </SubComponents>

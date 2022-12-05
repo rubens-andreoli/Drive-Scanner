@@ -16,16 +16,41 @@
  */
 package rubensandreoli.drivescanner.gui;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Set;
-import java.util.TreeSet;
-import javax.swing.DefaultListModel;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import javax.swing.AbstractListModel;
 import javax.swing.event.ListSelectionListener;
 
 public class ListDialogPanel<T> extends javax.swing.JPanel {
 
-    private DefaultListModel<T> lstModel = new DefaultListModel<>();
-    
+    //<editor-fold defaultstate="collapsed" desc="LIST MODEL">
+    private static class DialogListModel extends AbstractListModel<Object> {
+
+        private static final Comparator<Object> OBJECT_COMPARATOR = (o1, o2) -> o1.toString().compareToIgnoreCase(o2.toString());
+        
+        private final List<Object> data;
+
+        public DialogListModel(Collection<?> items){
+            data = new ArrayList<>(items);
+            Collections.sort(data, OBJECT_COMPARATOR);
+        }
+        
+        @Override
+        public int getSize() {
+            return data.size();
+        }
+
+        @Override
+        public Object getElementAt(int index) {
+            return data.get(index);
+        }
+        
+    }
+    //</editor-fold>
+
     public ListDialogPanel() {
         initComponents();
     }
@@ -35,12 +60,7 @@ public class ListDialogPanel<T> extends javax.swing.JPanel {
     }
 
     public void setItems(Collection<T> items){
-        Set<T> ordered = new TreeSet<>((o1, o2) -> {
-            return o1.toString().compareToIgnoreCase(o2.toString());
-        });
-        ordered.addAll(items);
-        lstModel.clear();
-        lstModel.addAll(ordered);
+        lstScans.setModel(new DialogListModel(items));
     }
     
     public void addSelectionListener(ListSelectionListener listener){
@@ -70,7 +90,6 @@ public class ListDialogPanel<T> extends javax.swing.JPanel {
 
         scrScans.setPreferredSize(new java.awt.Dimension(200, 100));
 
-        lstScans.setModel(lstModel);
         lstScans.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         scrScans.setViewportView(lstScans);
 

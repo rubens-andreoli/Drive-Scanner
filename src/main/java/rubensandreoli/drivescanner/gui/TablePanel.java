@@ -25,7 +25,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -41,11 +40,11 @@ import rubensandreoli.drivescanner.io.Scan;
 public class TablePanel extends javax.swing.JPanel {
 
     //<editor-fold defaultstate="collapsed" desc="TABLE MODEL">
-    private class TableModel extends AbstractTableModel {
+    private static class FolderTableModel extends AbstractTableModel {
 
         private final String[] colNames = {"Folder", "Size"};
         private Scan scan;
-        private TableFilter filter;
+        private FolderTableFilter filter;
         private Map<Folder, String> scanFolders = getMap();
 
         void setData(Scan scan){
@@ -75,7 +74,7 @@ public class TablePanel extends javax.swing.JPanel {
             fireTableDataChanged();
         }
         
-        void setFilter(TableFilter filter){
+        void setFilter(FolderTableFilter filter){
             this.filter = filter;
             if(scan != null){
                 populate();
@@ -119,7 +118,7 @@ public class TablePanel extends javax.swing.JPanel {
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="TABLE RENDERER">
-    private class TableCellRenderer extends DefaultTableCellRenderer {
+    private static class FolderTableCellRenderer extends DefaultTableCellRenderer {
 
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
@@ -146,11 +145,11 @@ public class TablePanel extends javax.swing.JPanel {
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="TABLE FILTER">
-    private class TableFilter {
+    private static class FolderTableFilter {
 
         private final HashSet<Folder.State> toDisplay;
 
-        private TableFilter(boolean unchanged, boolean changed, boolean deleted) {
+        private FolderTableFilter(boolean unchanged, boolean changed, boolean deleted) {
             toDisplay = new HashSet<>();
             if(unchanged) toDisplay.add(Folder.State.UNCHANGED);
             if(changed){
@@ -179,15 +178,22 @@ public class TablePanel extends javax.swing.JPanel {
     }
     //</editor-fold>
     
-    private final TableModel tblFoldersModel = new TableModel();
+    private final FolderTableModel tblFoldersModel = new FolderTableModel();
     private Listener listener; //listener cannot be null when action is performed.
+    private boolean hasDesktopSupport;
     
     public TablePanel() {
         initComponents();
         
-        //TODO: remove open from popupMenu if not supported; don't add listener.
+        hasDesktopSupport = Desktop.isDesktopSupported();
         
-        mniOpen.addActionListener(e -> openSelectedFolder());
+        if(hasDesktopSupport){
+            mniOpen.addActionListener(e -> openSelectedFolder());
+        } else {
+            popupMenu.remove(mniOpen);
+            popupMenu.remove(sprPopup);
+        }
+        
         mniMoveNew.addActionListener(e -> listener.onMoveFoldersNew(getSelectedFolders()));
         mniMoveInto.addActionListener(e -> listener.onMoveFoldersInto(getSelectedFolders()));
         mniDelete.addActionListener(e -> listener.onDeleteFolders(getSelectedFolders()));
@@ -234,7 +240,7 @@ public class TablePanel extends javax.swing.JPanel {
     }
     
     private void openSelectedFolder(){
-        if(!Desktop.isDesktopSupported()) return; //feature not supported.
+        if(!hasDesktopSupport) return; //feature not supported.
         for (Folder selectedFolder : getSelectedFolders()) {
             openFolder(selectedFolder);
         }
@@ -296,7 +302,7 @@ public class TablePanel extends javax.swing.JPanel {
     }
     
     void setFilter(boolean unchanged, boolean changed, boolean deleted){
-        tblFoldersModel.setFilter(new TableFilter(unchanged, changed, deleted));
+        tblFoldersModel.setFilter(new FolderTableFilter(unchanged, changed, deleted));
     }
 
     @SuppressWarnings("unchecked")
@@ -317,7 +323,7 @@ public class TablePanel extends javax.swing.JPanel {
         tblFolders.getColumnModel().getColumn(0).setResizable(false);
         tblFolders.getColumnModel().getColumn(1).setResizable(false);
 
-        tblFolders.setDefaultRenderer(Object.class, new TableCellRenderer());
+        tblFolders.setDefaultRenderer(Object.class, new FolderTableCellRenderer());
 
         mniOpen.setText("Open");
         popupMenu.add(mniOpen);
