@@ -86,11 +86,11 @@ public class Repository { //not synchronized.
     //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="LISTENERS">
-    public static class Error{
+    public static class ExceptionMessage{
         public final String message;
         public final Exception cause;
 
-        public Error(String message, Exception cause) {
+        public ExceptionMessage(String message, Exception cause) {
             this.message = message;
             this.cause = cause;
         }
@@ -105,19 +105,19 @@ public class Repository { //not synchronized.
     public static interface LoadListener{
         default void onLoaded(Data data){};
         default void onLoading(String filename){};
-        void onLoadError(Error e);
+        void onLoadError(ExceptionMessage exMsg);
     }
 
     @FunctionalInterface
     public static interface WorkListener{
         default void onDone(Scan scan){};
-        void onError(Error e);
+        void onError(ExceptionMessage exMsg);
     }
 
     @FunctionalInterface
     public static interface MoveListener{
         default void onMoved(Scan scanFrom, Scan scanTo){};
-        void onMoveError(Error e);
+        void onMoveError(ExceptionMessage exMsg);
     }
     //</editor-fold>
 
@@ -147,11 +147,11 @@ public class Repository { //not synchronized.
                 try (var ois = new ObjectInputStream(new FileInputStream(scanFile))) {
                     data.addScan((Scan) ois.readObject()); 
                 } catch (FileNotFoundException ex) {
-                    listener.onLoadError(new Error(scanFile.getName(), ex));
+                    listener.onLoadError(new ExceptionMessage(scanFile.getName(), ex));
                 } catch (InvalidClassException ex){
-                     listener.onLoadError(new Error(scanFile.getName(), ex));
+                     listener.onLoadError(new ExceptionMessage(scanFile.getName(), ex));
                 }catch (IOException | ClassNotFoundException ex) {
-                    listener.onLoadError(new Error(scanFile.getName(), ex));
+                    listener.onLoadError(new ExceptionMessage(scanFile.getName(), ex));
                 }
             }
         }
@@ -173,9 +173,9 @@ public class Repository { //not synchronized.
             listener.onDone(scan);
             return true;
         } catch (FileNotFoundException ex) {
-            listener.onError(new Error(scan.getName(), ex));
+            listener.onError(new ExceptionMessage(scan.getName(), ex));
         } catch (IOException ex) {
-            listener.onError(new Error(scan.getName(), ex));
+            listener.onError(new ExceptionMessage(scan.getName(), ex));
         }
         return false;
     }

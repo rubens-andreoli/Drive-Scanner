@@ -18,15 +18,18 @@ package rubensandreoli.drivescanner.gui;
 
 import java.awt.Component;
 import java.io.File;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import javax.swing.Icon;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.MutableTreeNode;
 import rubensandreoli.drivescanner.gui.support.IconLoader;
 import rubensandreoli.drivescanner.io.Folder;
 import rubensandreoli.drivescanner.io.Scan;
@@ -91,9 +94,15 @@ public class TreePanel extends javax.swing.JPanel {
     //<editor-fold defaultstate="collapsed" desc="NODE">
     private static class Node extends DefaultMutableTreeNode{
 
+        private static final Comparator<Node> NODE_COMPARATOR = (n1, n2) -> {
+            if((n1.folder && n2.folder) || (!n1.folder && !n2.folder)) return n1.toString().compareToIgnoreCase(n2.toString());
+            else return n1.folder? -1:1; //folders first.
+        };
+        
         private final boolean included;
         private final boolean folder;
-               
+        private TreeSet<Node> childrenSet; //temporary storage to avoid sorting every time.
+        
         public Node(String name){
             this(name, true, true);
         }
@@ -102,6 +111,19 @@ public class TreePanel extends javax.swing.JPanel {
             super(name);
             this.included = included;
             this.folder = folder;
+            childrenSet = new TreeSet<>(NODE_COMPARATOR);
+        }
+
+        public void addToBuild(Node newChild) {
+            assert newChild != null: "cannot add children after node has been built";
+            childrenSet.add(newChild);
+        }
+        
+        private void build(){ //build it to really add the children.
+            for (MutableTreeNode mutableTreeNode : childrenSet) {
+                super.add(mutableTreeNode);
+            }
+            childrenSet = null;
         }
 
     }
@@ -109,7 +131,7 @@ public class TreePanel extends javax.swing.JPanel {
     
     private static final DefaultTreeModel EMPTY_MODEL = new DefaultTreeModel(null);
 
-    private final Cache cachedTree = new Cache(4); //TODO: is a cache worth it?
+    private final Cache cachedTree = new Cache(5);
     
     public TreePanel() {
         initComponents();
@@ -140,15 +162,15 @@ public class TreePanel extends javax.swing.JPanel {
         treFiles.setModel(EMPTY_MODEL);
     }
     
-    private void addFilesToFolderNode(Folder folder, DefaultMutableTreeNode node){
+    private void addFilesToFolderNode(Folder folder, Node node){
         Set<String> filenames = folder.getFiles().keySet(); //does this improve performance or better to just use inside the loop?
         for (String filename : filenames) {
-            node.add(new Node(filename, true, false));
+            node.addToBuild(new Node(filename, true, false));
         }
     }
     
-    private DefaultMutableTreeNode createTree(Scan scan){ //TODO: try to do this extending TreeModel, and order the nodes.
-        Map<String, DefaultMutableTreeNode> allNodes = new HashMap<>();
+    private DefaultMutableTreeNode createTree(Scan scan){
+        Map<String, Node> allNodes = new HashMap<>();
         String rootPath = scan.getDrive().getPath();
         var root =  new Node(rootPath, false, true);
         allNodes.put(rootPath, root);
@@ -173,15 +195,19 @@ public class TreePanel extends javax.swing.JPanel {
                 if(parentNode == null){
                     parentNode = new Node(folderFile.getName(), false, true);
                     allNodes.put(folderPath, parentNode);
-                    parentNode.add(node);
+                    parentNode.addToBuild(node);
                     node = parentNode;
                 }else{
-                    parentNode.add(node);
+                    parentNode.addToBuild(node);
                     break;
                 }
                 
             }
             
+        }
+        
+        for (Node value : allNodes.values()) {
+            value.build();
         }
         return root;
     }

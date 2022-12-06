@@ -67,16 +67,16 @@ public class DialogFactory {
     }
     
     @SuppressWarnings("UseSpecificCatch")
-    public void showSaveErrorDialog(Repository.Error error){
+    public void showSaveErrorDialog(Repository.ExceptionMessage exMsg){
         String cause;
         try{
-            throw error.cause;
+            throw exMsg.cause;
         } catch (FileNotFoundException ex) {
             cause = "History folder not found."
                     + "\nReopening the program should fix it. If problem persists,"
                     + "\ntry creating manually a folder named '"+Repository.FOLDER_NAME+"' in the same folder as the program.";
         } catch (IOException ex) {
-            cause = "Scan '" + error.message + "' information could not be saved. "
+            cause = "Scan '" + exMsg.message + "' information could not be saved. "
                     + "Verify folder access permissions.";
         } catch (Exception ex) {
             cause = "Unexpected error while saving scan '"+ex.getMessage()+"'. What now?!"
@@ -87,10 +87,10 @@ public class DialogFactory {
     }
     
     @SuppressWarnings("UseSpecificCatch")
-    public boolean showLoadingErrorDialog(Collection<Repository.Error> errors){
-        var panel = new ListDialogPanel<Repository.Error>();
+    public boolean showLoadingErrorDialog(Collection<Repository.ExceptionMessage> exMsgs){
+        var panel = new ListDialogPanel<Repository.ExceptionMessage>();
         panel.setText("The following scan(s) could not be loaded, do you want to delete them?");
-        panel.setItems(errors);
+        panel.setItems(exMsgs);
         panel.addSelectionListener(e -> {
             if(!e.getValueIsAdjusting()){
                 String cause;

@@ -118,7 +118,7 @@ public class MainFrame extends javax.swing.JFrame {
     
     private void loadData(){
         SwingWorker <Repository.Data, String> loadWorker = new SwingWorker<>() {
-            private final List<Repository.Error> errors = new ArrayList<>(); //changed from another thread.
+            private final List<Repository.ExceptionMessage> exMsgs = new ArrayList<>(); //changed from another thread.
             
             @Override
             protected Repository.Data doInBackground() throws Exception {
@@ -129,8 +129,8 @@ public class MainFrame extends javax.swing.JFrame {
                     }
                     
                     @Override
-                    public void onLoadError(Repository.Error e) {
-                        errors.add(e);
+                    public void onLoadError(Repository.ExceptionMessage msg) {
+                        exMsgs.add(msg);
                     }
                 });
             }
@@ -149,9 +149,9 @@ public class MainFrame extends javax.swing.JFrame {
                 data = Repository.getInstance().getData();
                 setLocked(false);
                 changeSelectedDrive(toolsPanel.getSelectedDrive());
-                if(!errors.isEmpty() && df.showLoadingErrorDialog(errors)) {
-                    Collection<String> filenames = new ArrayList<>(errors.size());
-                    for (Repository.Error error : errors) {
+                if(!exMsgs.isEmpty() && df.showLoadingErrorDialog(exMsgs)) {
+                    Collection<String> filenames = new ArrayList<>(exMsgs.size());
+                    for (Repository.ExceptionMessage error : exMsgs) {
                         filenames.add(error.message);
                     }
                     if(!Repository.getInstance().deleteScans(filenames)){
@@ -225,8 +225,8 @@ public class MainFrame extends javax.swing.JFrame {
                         }
 
                         @Override
-                        public void onError(Repository.Error e) {
-                            df.showSaveErrorDialog(e);
+                        public void onError(Repository.ExceptionMessage exMsg) {
+                            df.showSaveErrorDialog(exMsg);
                         }
                     });
                 }else{
@@ -340,8 +340,8 @@ public class MainFrame extends javax.swing.JFrame {
             }
 
             @Override
-            public void onError(Repository.Error e) {
-               df.showSaveErrorDialog(e);
+            public void onError(Repository.ExceptionMessage exMsg) {
+               df.showSaveErrorDialog(exMsg);
             }
         });
     }
@@ -368,8 +368,8 @@ public class MainFrame extends javax.swing.JFrame {
                     }
 
                     @Override
-                    public void onError(Repository.Error e) {
-                        df.showSaveErrorDialog(e);
+                    public void onError(Repository.ExceptionMessage exMsg) {
+                        df.showSaveErrorDialog(exMsg);
                     }
                 });
             }
@@ -391,8 +391,8 @@ public class MainFrame extends javax.swing.JFrame {
             }
 
             @Override
-            public void onError(Repository.Error e) {
-                df.showSaveErrorDialog(e);
+            public void onError(Repository.ExceptionMessage exMsg) {
+                df.showSaveErrorDialog(exMsg);
             }
         });
         }
@@ -415,8 +415,8 @@ public class MainFrame extends javax.swing.JFrame {
                 }
                 
                 @Override
-                public void onMoveError(Repository.Error e) {
-                    df.showSaveErrorDialog(e);
+                public void onMoveError(Repository.ExceptionMessage exMsg) {
+                    df.showSaveErrorDialog(exMsg);
                 }
             });
         }
@@ -438,8 +438,8 @@ public class MainFrame extends javax.swing.JFrame {
             }
 
             @Override
-            public void onMoveError(Repository.Error e) {
-                df.showSaveErrorDialog(e);
+            public void onMoveError(Repository.ExceptionMessage exMsg) {
+                df.showSaveErrorDialog(exMsg);
             }
         });
     }
