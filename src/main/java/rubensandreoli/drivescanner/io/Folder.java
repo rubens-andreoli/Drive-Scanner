@@ -18,6 +18,7 @@ package rubensandreoli.drivescanner.io;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -33,75 +34,60 @@ public class Folder implements Serializable, Comparable<Folder> {
     private final File file;
     private long originalSize, currentSize;
     private State state;
-    private boolean calculated = false;
-    private Map<String, Long> files = new HashMap<>(); //ignored files' order for performance reasons.
-//    private boolean filesChanged = false;
+    private Map<String, Long> files;
 
     public Folder(File file) {
         this.file = file;
     }
-        
-    void addFile(String name, long size){
-        files.put(name, size);
-        calculated = false;
-    }
     
+    public static Map<String, Long> getNewFileMap(){
+        return new HashMap<>(); //ignored files' order for performance reasons.
+    }
+
     void setFiles(Map<String, Long> files){
-//        if(!this.files.keySet().equals(files.keySet())){
-//            filesChanged = true;
-//        }
-        this.files = files;      
-        calculated = false;
+        if(files == null){
+            this.files = Collections.EMPTY_MAP;
+            state = State.DELETED;
+            currentSize = 0L;
+        }else{
+            this.files = Collections.unmodifiableMap(files);
+            calculateSize();
+        }
     }
     
-    void calculateSize(){
-        long tempSize = 0L;
+    private void calculateSize(){
+        currentSize = 0L;
         for (long fileSize : files.values()) {
-            tempSize += fileSize;
+            currentSize += fileSize;
         }
-        if(state == null){ //just created.
+        if(state == null){ //new.
             state = State.UNCHANGED;
-            originalSize = currentSize = tempSize;
+            originalSize = currentSize;
         }else{ //updating.
-            if (tempSize == this.currentSize) {
-//                if(!filesChanged)
-                    state = State.UNCHANGED;
-//                else{
-//                    state = State.CHANGED;
-//                    filesChanged = false;
-//                }
+            if (currentSize == originalSize) {
+                state = State.UNCHANGED;
+            }else if (currentSize > originalSize){
+                state = State.INCREASED;
             }else{
-                if (tempSize > this.currentSize) state = State.INCREASED;
-                else state = State.DECREASED;
-                this.currentSize = tempSize;
+                state = State.DECREASED;
             }
         }
-        calculated = true;
     }
- 
-    void setDeleted(){ //if folder is found again, calculateSize() will remove deleted state.
-        state = State.DELETED;
-        files.clear();
-        currentSize = 0;
-        calculated = true;
-    }
-    
-    void resetState(){
-        state = State.UNCHANGED;
-        originalSize = currentSize;
-    }
+
+//    void resetState(){
+//        state = State.UNCHANGED;
+//        currentSize = originalSize;
+//    }
 
     public File getFile() {
         return file;
     }
 
     public long getCurrentSize() {
-        if(!calculated) calculateSize();
         return currentSize;
     }
     
     public long getOriginalSize(){
-        if(!calculated) calculateSize();
         return originalSize;
     }
     

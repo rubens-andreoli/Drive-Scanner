@@ -53,7 +53,6 @@
                 <MenuItem class="javax.swing.JMenuItem" name="mniDeleteAll">
                   <Properties>
                     <Property name="text" type="java.lang.String" value="Delete All"/>
-                    <Property name="enabled" type="boolean" value="false"/>
                   </Properties>
                 </MenuItem>
                 <MenuItem class="javax.swing.JPopupMenu$Separator" name="sprEdit">

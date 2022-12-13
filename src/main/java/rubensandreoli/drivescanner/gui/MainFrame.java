@@ -20,6 +20,7 @@ import java.awt.Cursor;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.swing.SwingWorker;
@@ -202,6 +203,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
 
             @Override
+            @SuppressWarnings("UseSpecificCatch")
             protected void done() {
                 statusPanel.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
                 statusPanel.clearMessage();
@@ -401,8 +403,9 @@ public class MainFrame extends javax.swing.JFrame {
     private void moveFoldersInto(Set<Folder> folders) {
         final String actionName = "Move Folders";
         if(showLocked(actionName)) return;
-        
-        Scan selectedScan = df.showSelectScanDialog(data.getDriveScans(toolsPanel.getSelectedDrive()));
+        Collection<Scan> scansToSelect = new HashSet<>(data.getDriveScans(toolsPanel.getSelectedDrive()));
+        scansToSelect.remove(currentScan);
+        Scan selectedScan = df.showSelectScanDialog(scansToSelect);
         if(selectedScan != null){
             Repository.getInstance().moveScanFolders(currentScan, selectedScan, folders, new Repository.MoveListener() {
                 @Override
@@ -491,7 +494,7 @@ public class MainFrame extends javax.swing.JFrame {
         mniScan.setEnabled(!locked);
         mniStop.setEnabled(locked);
         setEditEnabled(!locked/* && listPanel.getSelectedScan() != null*/); //only if selected something.
-        mniDeleteAll.setEnabled(locked? locked : isSelectedDriveNotEmpty()); //if not locked, check if there is any scans to delete.
+        mniDeleteAll.setEnabled(locked? !locked : isSelectedDriveNotEmpty()); //if not locked, check if there is any scans to delete.
     }
     
     private void deleteScan(Scan scan, String action){
@@ -612,7 +615,6 @@ public class MainFrame extends javax.swing.JFrame {
         mnuEdit.add(mniDelete);
 
         mniDeleteAll.setText("Delete All");
-        mniDeleteAll.setEnabled(false);
         mnuEdit.add(mniDeleteAll);
         mnuEdit.add(sprEdit);
 

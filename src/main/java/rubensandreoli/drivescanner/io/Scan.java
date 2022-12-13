@@ -42,18 +42,6 @@ public class Scan implements Serializable{
     private Date updatedDate;
     private long updatedSize;
 
-    public Scan(Scan scan){ //shallow copy.
-        this(scan.name, scan);
-    }
-
-    public Scan(String name, Scan scan){ //shallow copy.
-        this(name, scan.drive, scan.folders, scan.date, scan.size);
-        if(scan.isUpdated()){
-            this.updatedDate = scan.updatedDate;
-            this.updatedSize = scan.updatedSize;
-        }
-    }
-
     public Scan(String name, File drive, Set<Folder> folders) {
         this(name, drive, folders, new Date(), calculateSize(folders));
     }
@@ -97,11 +85,18 @@ public class Scan implements Serializable{
     
     void merge(Collection<Scan> scans){
         for (Scan s : scans) {
-            folders.addAll(s.getFolders());
-            if(s.isUpdated()){
-                size += s.updatedSize;
-            }else{
+            if(folders.addAll(s.getFolders())){
                 size += s.size;
+            }
+        }
+        updatedDate = null; //reset updated status; folders' updated information is kept.
+        updatedSize = 0;
+    }
+    
+    void addFolders(Set<Folder> folders){
+        for (Folder folder : folders) {
+            if(this.folders.add(folder)){
+                size += folder.getOriginalSize();
             }
         }
         updatedDate = null; //reset updated status; folders' updated information is kept.
@@ -117,17 +112,6 @@ public class Scan implements Serializable{
                 size -= folder.getOriginalSize();
             }
         }
-    }
-    
-    void addFolders(Set<Folder> folders){
-        for (Folder folder : folders) {
-            folder.resetState();
-            if(this.folders.add(folder)){
-                size += folder.getCurrentSize();
-            }
-        }
-        updatedDate = null; //reset updated status; folders' updated information is kept.
-        updatedSize = 0;
     }
 
     public File getDrive() {
@@ -182,12 +166,26 @@ public class Scan implements Serializable{
         return updatedDate != null;
     }
     
+    Scan getRenamed(String newName){ //shallow copy.
+        Scan copy = new Scan(newName, drive, folders, date, size);
+//        if(isUpdated()){
+            copy.updatedDate = updatedDate;
+            copy.updatedSize = updatedSize;
+//        }
+        return copy;
+    }
+    
     Scan getCopy(){ //semi-deep copy (each folder is still the same).
         Set<Folder> foldersCopy = getNewFolderSet();
         foldersCopy.addAll(folders);
-        return new Scan(name, drive, foldersCopy, date, size);
+        Scan copy = new Scan(name, drive, foldersCopy, date, size);
+//        if(isUpdated()){
+            copy.updatedDate = updatedDate;
+            copy.updatedSize = updatedSize;
+//        }
+        return copy;
     }
-    
+
     @Override
     public int hashCode() {
         return 31*(31*drive.hashCode()) + name.hashCode();

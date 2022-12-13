@@ -64,7 +64,7 @@ public class Repository { //not synchronized.
             if(!scans.containsKey(drive)){
                 return Collections.EMPTY_SET;
             }
-            return scans.get(drive);
+            return Collections.unmodifiableCollection(scans.get(drive));
         }
 
         public Set<Folder> getDriveFolders(File drive){ 
@@ -231,7 +231,7 @@ public class Repository { //not synchronized.
     }
     
     public Scan renameScan(Scan scan, String newName, WorkListener listener){
-        Scan newScan = new Scan(newName, scan);
+        Scan newScan = scan.getRenamed(newName);
         File newScanFile = createScanFile(newScan.getFilename());
         
         if(!newScanFile.isFile() && saveScan(newScan, listener)){
@@ -249,7 +249,7 @@ public class Repository { //not synchronized.
      * @return 
      */
     public Scan mergeScans(Collection<Scan> scans, Scan into, WorkListener listener){
-        Scan mergedScan = new Scan(into);
+        Scan mergedScan = into.getCopy();
         scans.remove(into); //removes base if passed along with the list; as it is the case.
         mergedScan.merge(scans);
         

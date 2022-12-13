@@ -54,13 +54,14 @@ public class Scanner {
         File[] folderFiles = folder.getFile().listFiles();
         //Check folder size and add to Map if folder is not registered in previous scans:
         if (!oldFolders.contains(folder)) {
+            Map<String, Long> files = Folder.getNewFileMap();
             for (File childFile : folderFiles) {
                 if(handler.isInterrupted()) return;
                 if (childFile.isFile()) {
-                    folder.addFile(childFile.getName(), childFile.length());
+                    files.put(childFile.getName(), childFile.length());
                 }
             }
-            folder.calculateSize();
+            folder.setFiles(files);
             newFolders.add(folder); 
         }
         handler.setStatus(folder.toString());
@@ -84,9 +85,9 @@ public class Scanner {
             File folderFile = folder.getFile();
             
             if (!folderFile.canRead()) {
-                folder.setDeleted();
+                cache.put(folder, null);
             } else {
-                Map<String, Long> files = new HashMap<>();
+                Map<String, Long> files = Folder.getNewFileMap();
                 File[] folderFiles = folderFile.listFiles();
                 if (folderFiles != null) {
                     for (File childFile : folderFiles) {
@@ -103,7 +104,6 @@ public class Scanner {
         for (Map.Entry<Folder, Map<String, Long>> entry : cache.entrySet()) {
             Folder folder = entry.getKey();
             folder.setFiles(entry.getValue()); 
-            folder.calculateSize();
         }
         scan.setUpdated(new Date());
     }
