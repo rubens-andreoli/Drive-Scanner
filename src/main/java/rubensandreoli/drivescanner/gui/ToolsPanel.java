@@ -17,7 +17,9 @@
 package rubensandreoli.drivescanner.gui;
 
 import java.awt.event.ItemEvent;
+import java.awt.event.KeyEvent;
 import java.io.File;
+import javax.swing.JComboBox;
 import rubensandreoli.drivescanner.gui.support.StringFormatter;
 import rubensandreoli.drivescanner.io.Scan;
 
@@ -104,7 +106,17 @@ public class ToolsPanel extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        cmbDrives = new javax.swing.JComboBox<>();
+        cmbDrives = new JComboBox<>(){
+            @Override
+            public void processKeyEvent(KeyEvent e) {
+                if(e.isShiftDown()){
+                    //bypass JComponent.processKeyEvent(e) call to Component.processKeyEvent(e) when shift is down.
+                    ToolsPanel.this.processKeyEvent(e);
+                }else{
+                    super.processKeyEvent(e);
+                }
+            }
+        };
         btnScan = new javax.swing.JButton();
         txtUpdatedSize = new javax.swing.JTextField();
         txtUpdatedDate = new javax.swing.JTextField();

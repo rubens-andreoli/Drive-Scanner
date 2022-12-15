@@ -194,7 +194,18 @@ public class TablePanel extends javax.swing.JPanel {
                 return false;
             }
         });
-        
+
+//        tblFolders.getTableHeader().getColumnModel().getColumn(0).setHeaderRenderer(new DefaultTableCellRenderer(){
+//            final var icon = IconLoader.getIcon("filter.png");
+//            @Override
+//            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+//                JLabel c = (JLabel) tblFolders.getTableHeader().getDefaultRenderer().getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+//                c.setHorizontalTextPosition(SwingConstants.TRAILING);
+//                c.setIcon(icon);
+//                return c;
+//            }
+//        });
+
         tblFolders.setRowSorter(sorter);
     }
     

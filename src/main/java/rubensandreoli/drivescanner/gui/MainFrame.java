@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import javax.swing.Icon;
 import javax.swing.SwingWorker;
 import rubensandreoli.drivescanner.gui.support.DialogFactory;
 import rubensandreoli.drivescanner.gui.support.IconLoader;
@@ -38,11 +39,14 @@ import rubensandreoli.drivescanner.io.Scanner;
  * https://www.flaticon.com/free-icon/bin_484611
  * https://www.flaticon.com/free-icon/rename_5376272
  * https://www.flaticon.com/free-icon/search_3121624
+ * https://www.flaticon.com/free-icon/filter-filled-tool-symbol_57164
  * 
  * @author Rubens A. Andreoli Jr.
  */
 public class MainFrame extends javax.swing.JFrame {
 
+    private static final Icon FILTER_ICON = IconLoader.getIcon("filter.png");
+    
     private Repository.Data data;
     private Scan currentScan;
     private SwingWorker<?,?> currentWorker;
@@ -456,6 +460,11 @@ public class MainFrame extends javax.swing.JFrame {
     }
     
     private void applyTableFilters(){
+        if(mncUnchanged.isSelected() && mncChanged.isSelected() && mncDeleted.isSelected()){
+            tabPanel.setIconAt(0, null);
+        }else if(tabPanel.getIconAt(0) == null){ //if not already set.
+            tabPanel.setIconAt(0, FILTER_ICON);
+        }
         tablePanel.setFilter(mncUnchanged.isSelected(), mncChanged.isSelected(), mncDeleted.isSelected());
     }
     
@@ -552,14 +561,14 @@ public class MainFrame extends javax.swing.JFrame {
         mniDeleteAll = new javax.swing.JMenuItem();
         sprEdit = new javax.swing.JPopupMenu.Separator();
         mniUpdate = new javax.swing.JMenuItem();
+        sprFile2 = new javax.swing.JPopupMenu.Separator();
+        mniExit = new javax.swing.JMenuItem();
         mnuView = new javax.swing.JMenu();
         mncTools = new javax.swing.JCheckBoxMenuItem();
         sprView = new javax.swing.JPopupMenu.Separator();
         mncUnchanged = new javax.swing.JCheckBoxMenuItem();
         mncChanged = new javax.swing.JCheckBoxMenuItem();
         mncDeleted = new javax.swing.JCheckBoxMenuItem();
-        sprFile2 = new javax.swing.JPopupMenu.Separator();
-        mniExit = new javax.swing.JMenuItem();
         mnuHelp = new javax.swing.JMenu();
         mniAbout = new javax.swing.JMenuItem();
 
@@ -623,6 +632,13 @@ public class MainFrame extends javax.swing.JFrame {
         mnuEdit.add(mniUpdate);
 
         mnuFile.add(mnuEdit);
+        mnuFile.add(sprFile2);
+
+        mniExit.setMnemonic('x');
+        mniExit.setText("Exit");
+        mnuFile.add(mniExit);
+
+        menuBar.add(mnuFile);
 
         mnuView.setMnemonic('V');
         mnuView.setText("View");
@@ -648,14 +664,7 @@ public class MainFrame extends javax.swing.JFrame {
         mncDeleted.setText("Deleted Entries");
         mnuView.add(mncDeleted);
 
-        mnuFile.add(mnuView);
-        mnuFile.add(sprFile2);
-
-        mniExit.setMnemonic('x');
-        mniExit.setText("Exit");
-        mnuFile.add(mniExit);
-
-        menuBar.add(mnuFile);
+        menuBar.add(mnuView);
 
         mnuHelp.setMnemonic('H');
         mnuHelp.setText("Help");
