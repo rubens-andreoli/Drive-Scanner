@@ -24,7 +24,7 @@ import java.util.Set;
 
 public class Scanner {
 
-    //<editor-fold defaultstate="collapsed" desc="LISTENER">
+    //<editor-fold defaultstate="collapsed" desc="HANDLER">
     public static interface Handler{
         void setStatus(String status);
         boolean isInterrupted();
@@ -40,16 +40,13 @@ public class Scanner {
     public Scan scan(String name, File drive, Set<Folder> oldFolders) {
         Set<Folder> newFolders = Scan.getNewFolderSet();
         this.folderCrawler(new Folder(drive), newFolders, oldFolders);
-        if(handler.isInterrupted()) return null;
-        return new Scan(name, drive, newFolders);
+        return new Scan(name, drive, newFolders); //no need to interrupt scan creation if the crawler finished already.
     }
     
     public static File[] getRoots(){
         return File.listRoots();
     }
 
-    //22957; 22352; 30700; 23713; 24975
-    //17023; 17519; 19046/ 17797; 18120
     private void folderCrawler(Folder folder, Set<Folder> newFolders, Set<Folder> oldFolders) { //TODO: try to improve performance.
         File[] folderFiles = folder.getFile().listFiles();
         //Check folder size and add to Map if folder is not registered in previous scans:

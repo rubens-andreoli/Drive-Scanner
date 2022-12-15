@@ -140,10 +140,8 @@ public class TreePanel extends javax.swing.JPanel {
 
     void setScan(Scan scan){
         if(cachedTree.containsKey(scan)){
-            System.out.println("cached"); //TODO: remove.
             treFiles.setModel(cachedTree.get(scan));
         }else{
-            System.out.println("new"); //TODO: remove.
             var newModel = new DefaultTreeModel(createTree(scan));
             cachedTree.put(scan, newModel);
             treFiles.setModel(newModel);

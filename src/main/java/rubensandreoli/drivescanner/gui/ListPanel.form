@@ -43,6 +43,7 @@
             </Property>
           </Properties>
           <AuxValues>
+            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new JList&lt;&gt;(){&#xa;    @Override&#xa;    protected void processKeyEvent(KeyEvent e) {&#xa;        if(e.isShiftDown()){&#xa;            //bypass JComponent.processKeyEvent(e) call to Component.processKeyEvent(e) when shift is down.&#xa;            ListPanel.this.processKeyEvent(e);&#xa;        }else{&#xa;            super.processKeyEvent(e);&#xa;        }&#xa;    }&#xa;};"/>
             <AuxValue name="JavaCodeGenerator_TypeParameters" type="java.lang.String" value="&lt;Scan&gt;"/>
           </AuxValues>
         </Component>

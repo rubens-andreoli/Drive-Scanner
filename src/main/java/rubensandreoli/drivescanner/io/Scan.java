@@ -19,18 +19,15 @@ package rubensandreoli.drivescanner.io;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.TreeSet;
 
 public class Scan implements Serializable{
     private static final long serialVersionUID = 1L;
 
     private static final String FILENAME_DIVISOR = "-";
     private static final String NORMALIZATION_REGEX = "[<>:\"\\\\/|?*]";
-    private static final Comparator<Scan> DATE_COMPARATOR = (s1, s2) -> s1.date.compareTo(s2.date);
 
     private final String name, filename;
     private final File drive;
@@ -74,10 +71,6 @@ public class Scan implements Serializable{
         return new LinkedHashSet<>();
     }
     
-    public static Collection<Scan> getNewScanCollection(){
-        return new TreeSet<>(DATE_COMPARATOR);
-    }
-
     void setUpdated(Date updatedDate) {
         this.updatedDate = updatedDate;
         updatedSize = calculateSize(folders);
@@ -150,7 +143,7 @@ public class Scan implements Serializable{
         return folders.size();
     }
     
-    public int getTotalFiles(){
+    public int getTotalFiles(){ //FOR (697600ns); STREAM (2732300ns)
         int total = 0;
         for (Folder folder : folders) {
             total += folder.getTotalFiles();
@@ -159,7 +152,7 @@ public class Scan implements Serializable{
     }
     
     public Set<Folder> getFolders() {
-        return folders;
+        return folders; //be carefull, set can be modified.
     }
     
     public boolean isUpdated(){

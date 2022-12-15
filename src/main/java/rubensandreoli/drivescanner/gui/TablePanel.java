@@ -25,14 +25,16 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
-import java.util.TreeMap;
-import javax.swing.JOptionPane;
 import javax.swing.JTable;
+import javax.swing.RowFilter;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableRowSorter;
+import rubensandreoli.drivescanner.gui.support.DialogFactory;
 import rubensandreoli.drivescanner.gui.support.StringFormatter;
 import rubensandreoli.drivescanner.io.Folder;
 import rubensandreoli.drivescanner.io.Scan;
@@ -42,47 +44,31 @@ public class TablePanel extends javax.swing.JPanel {
     //<editor-fold defaultstate="collapsed" desc="TABLE MODEL">
     private static class FolderTableModel extends AbstractTableModel {
 
+        static class FolderEntry {
+            private final Folder folder;
+            private final String size;
+
+            private FolderEntry(Folder folder, String size) {
+                this.folder = folder;
+                this.size = size;
+            }
+        }
+        
         private final String[] colNames = {"Folder", "Size"};
-        private Scan scan;
-        private FolderTableFilter filter;
-        private Map<Folder, String> scanFolders = getMap();
+        private List<FolderEntry> folderEntries = Collections.EMPTY_LIST;
 
         void setData(Scan scan){
-            this.scan = scan;
-            populate();
-        }
-        
-        private void populate(){
-            scanFolders = getMap();
-            if(filter == null || filter.shouldDisplayAll()){
-                for (Folder folder : scan.getFolders()) {
-                    scanFolders.put(folder, StringFormatter.formatSize(folder.getCurrentSize()));
-                }
-            }else{
-                for (Folder folder : scan.getFolders()) {
-                    if(filter.shouldDisplay(folder.getState())){
-                        scanFolders.put(folder, StringFormatter.formatSize(folder.getCurrentSize()));
-                    }
-                }
+            Set<Folder> folderSet = scan.getFolders();
+            folderEntries = new ArrayList<>(folderSet.size());
+            for (Folder folder : scan.getFolders()) {
+                folderEntries.add(new FolderEntry(folder, StringFormatter.formatSize(folder.getCurrentSize())));
             }
             fireTableDataChanged();
         }
-        
+
         void clearData(){
-            this.scan = null;
-            scanFolders = getMap();
+            folderEntries = Collections.EMPTY_LIST;
             fireTableDataChanged();
-        }
-        
-        void setFilter(FolderTableFilter filter){
-            this.filter = filter;
-            if(scan != null){
-                populate();
-            }
-        }
-        
-        private Map<Folder, String> getMap(){
-            return new TreeMap<>();
         }
 
         @Override
@@ -102,15 +88,15 @@ public class TablePanel extends javax.swing.JPanel {
 
         @Override
         public int getRowCount() {
-            return scanFolders.size();
+            return folderEntries.size();
         }
 
         @Override
         public Object getValueAt(int row, int column) {
             if (column == 0) {
-                return scanFolders.keySet().toArray()[row];
+                return folderEntries.get(row).folder;
             } else {
-                return scanFolders.get(scanFolders.keySet().toArray()[row]);
+                return folderEntries.get(row).size;
             }
         }
 
@@ -122,54 +108,29 @@ public class TablePanel extends javax.swing.JPanel {
 
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
-            Folder folder = (Folder) table.getModel().getValueAt(row, 0);
+            Folder folder = (Folder) table.getModel().getValueAt(table.convertRowIndexToModel(row), 0);
             Component cell = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
             if(!isSelected){
-                if (folder.getState() == Folder.State.DELETED) {
-                    cell.setBackground(Color.RED);
-                } else if (folder.getState() == Folder.State.INCREASED) {
-                    cell.setBackground(Color.GREEN);
-                } else if (folder.getState() == Folder.State.DECREASED) {
-                    cell.setBackground(Color.YELLOW);
-                } else {
-                    cell.setBackground(table.getBackground());
+                switch (folder.getState()) {
+                    case DELETED:
+                        cell.setBackground(Color.RED);
+                        break;
+                    case INCREASED:
+                        cell.setBackground(Color.GREEN);
+                        break;
+                    case DECREASED:
+                        cell.setBackground(Color.YELLOW);
+                        break;
+                    default:
+                        cell.setBackground(table.getBackground());
                 }
             }
-//            if (folder.isRoot()) {
-//                setFont(getFont().deriveFont(Font.BOLD));
-//            }
             return cell;
         }
 
     }
     //</editor-fold>
-
-    //<editor-fold defaultstate="collapsed" desc="TABLE FILTER">
-    private static class FolderTableFilter {
-
-        private final HashSet<Folder.State> toDisplay;
-
-        private FolderTableFilter(boolean unchanged, boolean changed, boolean deleted) {
-            toDisplay = new HashSet<>();
-            if(unchanged) toDisplay.add(Folder.State.UNCHANGED);
-            if(changed){
-                toDisplay.add(Folder.State.INCREASED);
-                toDisplay.add(Folder.State.DECREASED);
-            }
-            if(deleted) toDisplay.add(Folder.State.DELETED);
-        }
-
-        boolean shouldDisplay(Folder.State state){
-            return toDisplay.contains(state);
-        }
-
-        boolean shouldDisplayAll(){
-            return toDisplay.size() == 4;
-        }
-
-    }
-    //</editor-fold>
-    
+        
     //<editor-fold defaultstate="collapsed" desc="LISTENER">
     public static interface Listener{
         void onDeleteFolders(Set<Folder> folders);
@@ -178,7 +139,13 @@ public class TablePanel extends javax.swing.JPanel {
     }
     //</editor-fold>
     
-    private final FolderTableModel tblFoldersModel = new FolderTableModel();
+    private final FolderTableModel model = new FolderTableModel();
+    private TableRowSorter<FolderTableModel> sorter = new TableRowSorter<>(model){ //used only for filtering.
+        @Override
+        public boolean isSortable(int column) {
+            return false;
+        }
+    };
     private Listener listener; //listener cannot be null when action is performed.
     private boolean hasDesktopSupport;
     
@@ -186,7 +153,6 @@ public class TablePanel extends javax.swing.JPanel {
         initComponents();
         
         hasDesktopSupport = Desktop.isDesktopSupported();
-        
         if(hasDesktopSupport){
             mniOpen.addActionListener(e -> openSelectedFolder());
         } else {
@@ -194,10 +160,10 @@ public class TablePanel extends javax.swing.JPanel {
             popupMenu.remove(sprPopup);
         }
         
+        //LISTENERS
         mniMoveNew.addActionListener(e -> listener.onMoveFoldersNew(getSelectedFolders()));
         mniMoveInto.addActionListener(e -> listener.onMoveFoldersInto(getSelectedFolders()));
         mniDelete.addActionListener(e -> listener.onDeleteFolders(getSelectedFolders()));
-        
         tblFolders.addKeyListener(new KeyAdapter(){
             @Override
             public void keyPressed(KeyEvent e) {
@@ -206,7 +172,6 @@ public class TablePanel extends javax.swing.JPanel {
                 }
             }
         });
-        
         tblFolders.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent evt) {
@@ -222,10 +187,6 @@ public class TablePanel extends javax.swing.JPanel {
             
             private boolean showPopupMenu(MouseEvent evt){
                 if(evt.isPopupTrigger()){
-                    /*int rowAtPoint = tblFolders.rowAtPoint(new Point(evt.getX(), evt.getY()));
-                        if (rowAtPoint > -1) {
-                            tblFolders.setRowSelectionInterval(rowAtPoint, rowAtPoint);
-                        }*/
                     setPopupItemsEnabled(isSelectionNotEmpty());
                     popupMenu.show(tblFolders, evt.getX(), evt.getY());
                     return true;
@@ -233,6 +194,8 @@ public class TablePanel extends javax.swing.JPanel {
                 return false;
             }
         });
+        
+        tblFolders.setRowSorter(sorter);
     }
     
     private boolean isSelectionNotEmpty(){
@@ -252,20 +215,14 @@ public class TablePanel extends javax.swing.JPanel {
             try{
                 Desktop.getDesktop().open(folderPath);
             }catch(SecurityException | IOException ex ){
-                JOptionPane.showMessageDialog(this.getTopLevelAncestor(),
-                        "Folder could not be opened."
+                DialogFactory.showErrorDialog("Open Folder", "Folder could not be opened."
                                 + "\n"+folder
-                                + "\nVerify folder access permissions.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                                + "\nVerify folder access permissions.");
             }
         } else {
-            JOptionPane.showMessageDialog(this.getTopLevelAncestor(),
-                    "Folder not found."
+            DialogFactory.showErrorDialog("Open Folder", "Folder not found."
                             + "\n"+folder
-                            + "\nPerform an update to highlight in red the deleted folders.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+                            + "\nPerform an update to highlight in red the deleted folders.");
         }
     }
     
@@ -280,29 +237,36 @@ public class TablePanel extends javax.swing.JPanel {
         }
         return folders;
     }
-    
-//    private Folder getSelectedFolder(){
-//        return ((Folder) tblFolders.getValueAt(tblFolders.getSelectedRow(), 0));
-//    }
 
     private void setPopupItemsEnabled(boolean enabled){
         mniOpen.setEnabled(enabled);
         mnuMove.setEnabled(enabled);
-//        mniMoveInto.setEnabled(enabled);
-//        mniMoveNew.setEnabled(enabled);
         mniDelete.setEnabled(enabled);
     }
     
     void clear() {
-        tblFoldersModel.clearData();
+        model.clearData();
     }
 
     void setScan(Scan scan) {
-        tblFoldersModel.setData(scan);
+        model.setData(scan);
     }
     
-    void setFilter(boolean unchanged, boolean changed, boolean deleted){
-        tblFoldersModel.setFilter(new FolderTableFilter(unchanged, changed, deleted));
+    void setFilter(final boolean unchanged, final boolean changed, final boolean deleted){
+        if(unchanged && changed && deleted){
+            sorter.setRowFilter(null);
+        }else{
+            sorter.setRowFilter(new RowFilter<FolderTableModel, Object>(){
+                @Override
+                public boolean include(RowFilter.Entry<? extends FolderTableModel, ? extends Object> entry) {
+                    Folder.State folderState = ((Folder)entry.getValue(0)).getState();
+                    if(unchanged && folderState == Folder.State.UNCHANGED) return true;
+                    else if(deleted && folderState == Folder.State.DELETED) return true;
+                    else if(changed && (folderState == Folder.State.INCREASED || folderState == Folder.State.DECREASED)) return true;
+                    return false;
+                }
+            });
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -317,7 +281,7 @@ public class TablePanel extends javax.swing.JPanel {
         mniMoveInto = new javax.swing.JMenuItem();
         mniDelete = new javax.swing.JMenuItem();
         scrFolders = new javax.swing.JScrollPane();
-        tblFolders = new javax.swing.JTable(tblFoldersModel);
+        tblFolders = new javax.swing.JTable(model);
         tblFolders.getTableHeader().setReorderingAllowed(false);
         tblFolders.getColumnModel().getColumn(1).setMaxWidth(65);
         tblFolders.getColumnModel().getColumn(0).setResizable(false);

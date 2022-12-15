@@ -26,16 +26,19 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class Repository { //not synchronized.
 
     //<editor-fold defaultstate="collapsed" desc="DATA">
     public static class Data {
 
+        private static final Comparator<Scan> DATE_COMPARATOR = (s1, s2) -> s1.getDate().compareTo(s2.getDate());
         private final Map<File, Collection<Scan>> scans = new HashMap<>();
         
         private Data(){}
@@ -46,7 +49,7 @@ public class Repository { //not synchronized.
         void addScan(Scan scan){
             File key = scan.getDrive();
             if(!scans.containsKey(key)){
-                scans.put(key, Scan.getNewScanCollection());
+                scans.put(key, new TreeSet<>(DATE_COMPARATOR));
             }
             scans.get(key).add(scan);
         }
@@ -124,6 +127,7 @@ public class Repository { //not synchronized.
     public static final String FOLDER_NAME = "history";
     public static final String FILE_EXTENSION = ".scan";
     
+    
     private static final Repository INSTANCE = new Repository();
     private final File folder;
     private final Data data = new Data();
@@ -138,7 +142,7 @@ public class Repository { //not synchronized.
     public static Repository getInstance() {
         return INSTANCE;
     }
-
+    
     public Data load(LoadListener listener) {
         for (File scanFile : folder.listFiles()) {
             final String filename = scanFile.getName();

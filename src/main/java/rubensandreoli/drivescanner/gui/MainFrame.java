@@ -47,8 +47,8 @@ public class MainFrame extends javax.swing.JFrame {
     private Scan currentScan;
     private SwingWorker<?,?> currentWorker;
     private boolean locked = false;
-    private final DialogFactory df;
 
+    @SuppressWarnings("LeakingThisInConstructor")
     public MainFrame() {
         initComponents();
         setLocationRelativeTo(null);
@@ -95,7 +95,7 @@ public class MainFrame extends javax.swing.JFrame {
         
         toolsPanel.addDrives(Scanner.getRoots());
         
-        df = new DialogFactory(this);
+        DialogFactory.init(this);
     }
     
     //<editor-fold defaultstate="collapsed" desc="ACTIONS">
@@ -150,13 +150,13 @@ public class MainFrame extends javax.swing.JFrame {
                 data = Repository.getInstance().getData();
                 setLocked(false);
                 changeSelectedDrive(toolsPanel.getSelectedDrive());
-                if(!exMsgs.isEmpty() && df.showLoadingErrorDialog(exMsgs)) {
+                if(!exMsgs.isEmpty() && DialogFactory.showLoadingErrorDialog(exMsgs)) {
                     Collection<String> filenames = new ArrayList<>(exMsgs.size());
                     for (Repository.ExceptionMessage error : exMsgs) {
                         filenames.add(error.message);
                     }
                     if(!Repository.getInstance().deleteScans(filenames)){
-                        df.showErrorDialog("Delete", "One or more files could not be deleted."
+                        DialogFactory.showErrorDialog("Delete", "One or more files could not be deleted."
                                 + "\nPlease delete it manually if it still exists.");
                     }
                 }
@@ -228,11 +228,11 @@ public class MainFrame extends javax.swing.JFrame {
 
                         @Override
                         public void onError(Repository.ExceptionMessage exMsg) {
-                            df.showSaveErrorDialog(exMsg);
+                            DialogFactory.showSaveErrorDialog(exMsg);
                         }
                     });
                 }else{
-                    df.showWarningDialog(actionName, "No new folders were found, this scan will not be saved.");
+                    DialogFactory.showWarningDialog(actionName, "No new folders were found, this scan will not be saved.");
                 }
                 System.gc();
             }
@@ -278,7 +278,7 @@ public class MainFrame extends javax.swing.JFrame {
                 setLocked(false);
                 if(!isCancelled()){
                     //TODO: save scan in new thread. Or the same as scan but return scan and only affect this frame on done.
-                    Repository.getInstance().updateScan(currentScan, e -> df.showSaveErrorDialog(e));
+                    Repository.getInstance().updateScan(currentScan, e -> DialogFactory.showSaveErrorDialog(e));
                     treePanel.invalidateCache(currentScan);
                     selectScan(currentScan);
                 }
@@ -299,7 +299,7 @@ public class MainFrame extends javax.swing.JFrame {
         final String actionName = "Delete Selected";
         if(showLocked(actionName)) return;
         
-        if (df.showConfirmDialog(actionName, "Are you sure you want to delete the selected scan(s)?")) {
+        if (DialogFactory.showConfirmDialog(actionName, "Are you sure you want to delete the selected scan(s)?")) {
             if(scans == null) deleteScan(currentScan, actionName);
             else{
                 for (Scan scan : scans) {
@@ -313,14 +313,14 @@ public class MainFrame extends javax.swing.JFrame {
         final String actionName = "Delete All";
         if(showLocked(actionName)) return;
         
-        if(df.showConfirmDialog(actionName, "Are you sure you want to delete all scans from the selected drive?")){
+        if(DialogFactory.showConfirmDialog(actionName, "Are you sure you want to delete all scans from the selected drive?")){
             Collection<Scan> failed = Repository.getInstance().deleteScans(toolsPanel.getSelectedDrive());
             if(failed.isEmpty()){
                 listPanel.clear();
                 treePanel.invalidadeCache();
             }else{
                 listPanel.removeScans(failed); //FIX: should be remove all but, and invalidate them.
-                df.showDeleteAllErrorDialog(failed);
+                DialogFactory.showDeleteAllErrorDialog(failed);
             }
             driveSelected();
         }
@@ -343,7 +343,7 @@ public class MainFrame extends javax.swing.JFrame {
 
             @Override
             public void onError(Repository.ExceptionMessage exMsg) {
-               df.showSaveErrorDialog(exMsg);
+               DialogFactory.showSaveErrorDialog(exMsg);
             }
         });
     }
@@ -352,10 +352,10 @@ public class MainFrame extends javax.swing.JFrame {
         final String actionName = "Merge";
         
         if(!listPanel.isMultipleSelected()){
-            df.showWarningDialog(actionName, "Multiple scans must be selected to perform a merge operation.");
+            DialogFactory.showWarningDialog(actionName, "Multiple scans must be selected to perform a merge operation.");
         }else{
             if(showLocked(actionName)) return;
-            if(df.showConfirmDialog(actionName, "Are you sure you want to merge all the selected scans?"
+            if(DialogFactory.showConfirmDialog(actionName, "Are you sure you want to merge all the selected scans?"
                     + "\nAll scans will be merged into the first one selected: [" + currentScan +"]")){
                 final Collection<Scan> selectedScans = listPanel.getSelectedScans();
                 Repository.getInstance().mergeScans(selectedScans, currentScan, new Repository.WorkListener() {
@@ -371,7 +371,7 @@ public class MainFrame extends javax.swing.JFrame {
 
                     @Override
                     public void onError(Repository.ExceptionMessage exMsg) {
-                        df.showSaveErrorDialog(exMsg);
+                        DialogFactory.showSaveErrorDialog(exMsg);
                     }
                 });
             }
@@ -382,7 +382,7 @@ public class MainFrame extends javax.swing.JFrame {
         final String actionName = "Delete Folders";
         if(showLocked(actionName)) return;
         
-        if(df.showConfirmDialog(actionName, "Are you sure you want to delete the selected folder(s) from this scan?")){
+        if(DialogFactory.showConfirmDialog(actionName, "Are you sure you want to delete the selected folder(s) from this scan?")){
             //TODO: delete scan's folders in new thread.
             Repository.getInstance().deleteScanFolders(currentScan, folders, new Repository.WorkListener() {
             @Override
@@ -394,7 +394,7 @@ public class MainFrame extends javax.swing.JFrame {
 
             @Override
             public void onError(Repository.ExceptionMessage exMsg) {
-                df.showSaveErrorDialog(exMsg);
+                DialogFactory.showSaveErrorDialog(exMsg);
             }
         });
         }
@@ -405,7 +405,7 @@ public class MainFrame extends javax.swing.JFrame {
         if(showLocked(actionName)) return;
         Collection<Scan> scansToSelect = new HashSet<>(data.getDriveScans(toolsPanel.getSelectedDrive()));
         scansToSelect.remove(currentScan);
-        Scan selectedScan = df.showSelectScanDialog(scansToSelect);
+        Scan selectedScan = DialogFactory.showSelectScanDialog(scansToSelect);
         if(selectedScan != null){
             Repository.getInstance().moveScanFolders(currentScan, selectedScan, folders, new Repository.MoveListener() {
                 @Override
@@ -419,7 +419,7 @@ public class MainFrame extends javax.swing.JFrame {
                 
                 @Override
                 public void onMoveError(Repository.ExceptionMessage exMsg) {
-                    df.showSaveErrorDialog(exMsg);
+                    DialogFactory.showSaveErrorDialog(exMsg);
                 }
             });
         }
@@ -442,7 +442,7 @@ public class MainFrame extends javax.swing.JFrame {
 
             @Override
             public void onMoveError(Repository.ExceptionMessage exMsg) {
-                df.showSaveErrorDialog(exMsg);
+                DialogFactory.showSaveErrorDialog(exMsg);
             }
         });
     }
@@ -460,7 +460,7 @@ public class MainFrame extends javax.swing.JFrame {
     }
     
     private void showAboutDialog(){
-        df.showAboutDialog();
+        DialogFactory.showAboutDialog();
     }
     //</editor-fold>
     
@@ -503,7 +503,7 @@ public class MainFrame extends javax.swing.JFrame {
             treePanel.invalidateCache(scan);
             driveSelected();
         } else {
-            df.showErrorDialog(action, "Scan file not found.\nReopening the program should clear it from the list.");
+            DialogFactory.showErrorDialog(action, "Scan file not found.\nReopening the program should clear it from the list.");
         }
     }
         
@@ -512,19 +512,19 @@ public class MainFrame extends javax.swing.JFrame {
     }
     
     private boolean showLocked(String action){
-        if(locked) df.showWarningDialog(action, "This action cannot be performed while the program is busy.");
+        if(locked) DialogFactory.showWarningDialog(action, "This action cannot be performed while the program is busy.");
         return locked;
     }
     
     private void checkScanEmpty(String action){
-        if(currentScan.isEmpty() && df.showConfirmDialog(action, "Due to being edited the selected scan is now empty."
+        if(currentScan.isEmpty() && DialogFactory.showConfirmDialog(action, "Due to being edited the selected scan is now empty."
                 + "\nDo you want to delete it?")){
             deleteScan(currentScan, action);
         }
     }
     
     private String showCreateNameDialog(String title, String msg){
-        return df.showCreateScanNameDialog(title, msg, toolsPanel.getSelectedDrive());
+        return DialogFactory.showCreateScanNameDialog(title, msg, toolsPanel.getSelectedDrive());
     }
     //</editor-fold>
 

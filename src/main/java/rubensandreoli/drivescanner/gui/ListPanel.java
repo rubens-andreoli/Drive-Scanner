@@ -18,8 +18,10 @@ package rubensandreoli.drivescanner.gui;
 
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.Arrays;
 import java.util.Collection;
 import javax.swing.DefaultListModel;
+import javax.swing.JList;
 import rubensandreoli.drivescanner.io.Scan;
 
 public class ListPanel extends javax.swing.JPanel {
@@ -36,7 +38,7 @@ public class ListPanel extends javax.swing.JPanel {
     
     public ListPanel() {
         initComponents();
-        
+
         lstScans.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()){
                 if(!isMultipleSelected() && getSelectedScan() != null){
@@ -119,7 +121,17 @@ public class ListPanel extends javax.swing.JPanel {
     private void initComponents() {
 
         scrScans = new javax.swing.JScrollPane();
-        lstScans = new javax.swing.JList<>();
+        lstScans = new JList<>(){
+            @Override
+            protected void processKeyEvent(KeyEvent e) {
+                if(e.isShiftDown()){
+                    //bypass JComponent.processKeyEvent(e) call to Component.processKeyEvent(e) when shift is down.
+                    ListPanel.this.processKeyEvent(e);
+                }else{
+                    super.processKeyEvent(e);
+                }
+            }
+        };
 
         scrScans.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 

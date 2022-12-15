@@ -30,32 +30,37 @@ import rubensandreoli.drivescanner.io.Scan;
 
 public class DialogFactory {
 
-    private final Frame parent;
-    private final AboutDialog aboutDialog;
+    private static Frame parent;
+    private static AboutDialog aboutDialog;
 
-    public DialogFactory(Frame parent) {
-        this.parent = parent;
-        aboutDialog = new AboutDialog(parent, new AboutDialog.ProgramInfo("Drive Scanner", null, "1.0.0", "2022"));
-        aboutDialog.addAtribution("Icons", "Freepik", "https://www.flaticon.com/authors/freepik");
-    }
+    private DialogFactory(){}
     
-    public void showAboutDialog(){
+    public static void init(Frame parent){
+        assert (parent != null): "factory already initialized";
+        DialogFactory.parent = parent;
+    }
+
+    public static void showAboutDialog(){
+        if(aboutDialog == null){
+            aboutDialog = new AboutDialog(parent, new AboutDialog.ProgramInfo("Drive Scanner", null, "1.0.0", "2022"));
+            aboutDialog.addAtribution("Icons", "Freepik", "https://www.flaticon.com/authors/freepik");
+        }
         aboutDialog.setVisible(true);
     }
     
-    public void showErrorDialog(String title, String msg){
+    public static void showErrorDialog(String title, String msg){
         JOptionPane.showMessageDialog(parent, msg, title, JOptionPane.ERROR_MESSAGE);
     }
     
-    public void showWarningDialog(String title, String msg){
+    public static void showWarningDialog(String title, String msg){
         JOptionPane.showMessageDialog(parent, msg, title, JOptionPane.WARNING_MESSAGE);
     }
     
-    public boolean showConfirmDialog(String title, String msg){
+    public static boolean showConfirmDialog(String title, String msg){
         return (JOptionPane.showConfirmDialog(parent, msg, title, JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION);
     }
     
-    public String showCreateScanNameDialog(String title, String msg, File selectedDrive){
+    public static String showCreateScanNameDialog(String title, String msg, File selectedDrive){
         String name = JOptionPane.showInputDialog(parent, msg, title, JOptionPane.QUESTION_MESSAGE);
         name = name.trim();
         if (name == null || name.equals("")) return null;
@@ -67,7 +72,7 @@ public class DialogFactory {
     }
     
     @SuppressWarnings("UseSpecificCatch")
-    public void showSaveErrorDialog(Repository.ExceptionMessage exMsg){
+    public static void showSaveErrorDialog(Repository.ExceptionMessage exMsg){
         String cause;
         try{
             throw exMsg.cause;
@@ -87,7 +92,7 @@ public class DialogFactory {
     }
     
     @SuppressWarnings("UseSpecificCatch")
-    public boolean showLoadingErrorDialog(Collection<Repository.ExceptionMessage> exMsgs){
+    public static boolean showLoadingErrorDialog(Collection<Repository.ExceptionMessage> exMsgs){
         var panel = new ListDialogPanel<Repository.ExceptionMessage>();
         panel.setText("The following scan(s) could not be loaded, do you want to delete them?");
         panel.setItems(exMsgs);
@@ -114,7 +119,7 @@ public class DialogFactory {
         return JOptionPane.showConfirmDialog(parent, panel, "Loading", JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE) == JOptionPane.YES_OPTION;
     }
     
-    public void showDeleteAllErrorDialog(Collection<Scan> scans){
+    public static void showDeleteAllErrorDialog(Collection<Scan> scans){
         var panel = new ListDialogPanel<Scan>();
         panel.setText("Scan file(s) could not be deleted."
                 + "The file(s) may have been deleted. "
@@ -124,7 +129,7 @@ public class DialogFactory {
         JOptionPane.showMessageDialog(parent, panel, "Delete All", JOptionPane.ERROR_MESSAGE);
     }
     
-    public Scan showSelectScanDialog(Collection<Scan> scans){
+    public static Scan showSelectScanDialog(Collection<Scan> scans){
         var panel = new ListDialogPanel<Scan>();
         panel.setText("Select to which scan you want to move the selected folder(s):");
         panel.setItems(scans);

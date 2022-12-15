@@ -21,7 +21,6 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class Folder implements Serializable, Comparable<Folder> {
 
@@ -55,7 +54,7 @@ public class Folder implements Serializable, Comparable<Folder> {
         }
     }
     
-    private void calculateSize(){
+    private void calculateSize(){ //FOR (23900ns); STREAM (3327400ns); PARALLEL (3617200ns)
         currentSize = 0L;
         for (long fileSize : files.values()) {
             currentSize += fileSize;
@@ -73,11 +72,6 @@ public class Folder implements Serializable, Comparable<Folder> {
             }
         }
     }
-
-//    void resetState(){
-//        state = State.UNCHANGED;
-//        currentSize = originalSize;
-//    }
 
     public File getFile() {
         return file;
@@ -109,11 +103,10 @@ public class Folder implements Serializable, Comparable<Folder> {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public final boolean equals(Object obj) {
         if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
-        return Objects.equals(this.file, ((Folder) obj).file);
+        if (obj instanceof Folder) return this.file.equals(((Folder) obj).file); //subclasses will be considered equal if they reference the same file.
+        return false;
     }
     
     @Override
